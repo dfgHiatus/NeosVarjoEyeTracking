@@ -8,7 +8,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>NeosWCFaceIntegration</RootNamespace>
     <AssemblyName>NeosWCFaceIntegration</AssemblyName>
-    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
@@ -34,37 +34,34 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>G:\Steam\steamapps\common\NeosVR\0Harmony.dll</HintPath>
+      <HintPath>J:\SteamLibrary\steamapps\common\NeosVR\Libraries\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="BaseX, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>G:\Steam\steamapps\common\NeosVR\Neos_Data\Managed\BaseX.dll</HintPath>
+      <HintPath>J:\SteamLibrary\steamapps\common\NeosVR\Neos_Data\Managed\BaseX.dll</HintPath>
     </Reference>
     <Reference Include="FrooxEngine, Version=2021.10.26.9, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>G:\Steam\steamapps\common\NeosVR\Neos_Data\Managed\FrooxEngine.dll</HintPath>
+      <HintPath>J:\SteamLibrary\steamapps\common\NeosVR\Neos_Data\Managed\FrooxEngine.dll</HintPath>
     </Reference>
     <Reference Include="NeosModLoader">
-      <HintPath>G:\Steam\steamapps\common\NeosVR\Libraries\NeosModLoader.dll</HintPath>
+      <HintPath>J:\SteamLibrary\steamapps\common\NeosVR\Libraries\NeosModLoader.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Numerics" />
-    <Reference Include="websocket-sharp">
-      <HintPath>WCFace\websocket-sharp.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Neos-Eye-Face-API.cs" />
+    <Compile Include="Neos_Varjo_Eye_Integration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Mouth\MouthInterface.cs" />
-    <Compile Include="Eye\EyeInterface.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="TrackingLibs\VarjoLib.dll" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(TargetDir)\$(TargetFileName)" "G:\Steam\steamapps\common\NeosVR\nml_mods"</PostBuildEvent>
+    <PostBuildEvent>copy "$(TargetDir)\$(TargetFileName)" "J:\SteamLibrary\steamapps\common\NeosVR\nml_mods"</PostBuildEvent>
   </PropertyGroup>
 </Project>
