@@ -34,6 +34,7 @@ namespace Neos_Varjo_Eye
 
 		public static VarjoTracker varjoTracker;
 		public static MemoryData varjoMemory;
+		public static float eyeTimestamp = 0f;
 		public override string Name => "Neos-Varjo-Eye-Integration";
 		public override string Author => "dfgHiatus";
 		public override string Version => "1.0.0";
@@ -55,11 +56,17 @@ namespace Neos_Varjo_Eye
 				{
 					varjoTracker = new VarjoTracker();
 					if (!varjoTracker.ConnectToPipe())
-						throw new Exception();
-					varjoMemory = varjoTracker.memoryGazeData;
-					GenericInputDevice gen = new GenericInputDevice();
-					Debug("Module Name: " + gen.ToString());
-					__instance.RegisterInputDriver(gen);
+                    {
+						Warn("Unable to establish Varjo Eye Data Pipe.");
+					}
+					else
+                    {
+						varjoMemory = varjoTracker.memoryGazeData;
+						GenericInputDevice gen = new GenericInputDevice();
+						Debug("Module Name: " + gen.ToString());
+						__instance.RegisterInputDriver(gen);
+					}
+
 				}
 				catch (Exception e)
 				{
@@ -97,6 +104,7 @@ namespace Neos_Varjo_Eye
 
 				// TODO Get NML Mods folder and return the VarjoCompanion.exe path
 				var modDir = Path.Combine(Engine.Current.AppPath, "nml_mods");
+				Debug("Mod directory/Companion Directory: " + modDir);
 				CompanionProcess = new Process();
 				CompanionProcess.StartInfo.WorkingDirectory = modDir;
 				CompanionProcess.StartInfo.FileName = Path.Combine(modDir, "VarjoCompanion.exe");
@@ -112,7 +120,7 @@ namespace Neos_Varjo_Eye
 					}
 					catch (FileNotFoundException)
 					{
-						Warn("VarjoEyeTracking mapped file doesn't exist; the companion app probably isn't running");
+						Warn("VarjoEyeTracking mapped file doesn't exist; the companion app probably isn't running.");
 					}
 					catch (Exception ex)
 					{
@@ -123,21 +131,6 @@ namespace Neos_Varjo_Eye
 				}
 
 				return false;
-			}
-
-			public void InterfaceUpdate()
-			{
-				if (MemMapFile == null) return;
-				ViewAccessor.Read(0, out memoryGazeData);
-			}
-
-			public void InterfaceTeardown()
-			{
-				if (MemMapFile == null) return;
-				memoryGazeData.shutdown = true;
-				ViewAccessor.Write(0, ref memoryGazeData);
-				MemMapFile.Dispose();
-				CompanionProcess.Close();
 			}
 
 			[DllImport("VarjoLib", CharSet = CharSet.Auto)]
@@ -174,7 +167,12 @@ namespace Neos_Varjo_Eye
 			public void Teardown()
 			{
 				_cancellationToken.Cancel();
-				tracker.InterfaceTeardown();
+				if (MemMapFile == null) return;
+				memoryGazeData.shutdown = true;
+				ViewAccessor.Write(0, ref memoryGazeData);
+				MemMapFile.Dispose();
+				CompanionProcess.Close();
+				// _updateThread.Abort();
 				_cancellationToken.Dispose();
 			}
 
@@ -182,7 +180,8 @@ namespace Neos_Varjo_Eye
 			{
 				if (!Engine.Current.InputInterface.VR_Active)
 					return;
-				tracker.InterfaceUpdate();
+				if (MemMapFile == null) return;
+				ViewAccessor.Read(0, out memoryGazeData);
 			}
 			// End VarjoTrackingInterface.cs
 		}
@@ -194,15 +193,13 @@ namespace Neos_Varjo_Eye
 			// These values need to be tweaked per user
 			public float Alpha = 2f;
 			public float Beta = 2f;
-			// This is the user's average pupil size, in mm
-			public float pupilSizeConstant = 4f;
 
 			public void CollectDeviceInfos(DataTreeList list)
 			{
 				DataTreeDictionary EyeDataTreeDictionary = new DataTreeDictionary();
-				EyeDataTreeDictionary.Add("Name", "Generic Eye Tracking");
+				EyeDataTreeDictionary.Add("Name", "Varjo Eye Tracking");
 				EyeDataTreeDictionary.Add("Type", "Eye Tracking");
-				EyeDataTreeDictionary.Add("Model", "Generic Eye Model");
+				EyeDataTreeDictionary.Add("Model", "Varjo Areo");
 				list.Add(EyeDataTreeDictionary);
 			}
 
@@ -214,62 +211,58 @@ namespace Neos_Varjo_Eye
 			public void UpdateInputs(float deltaTime)
 			{
 				// Current eye data assumes a data format similar to the Pimax
+				// Widen doesn't show up in the Pimax tracker, see if omitting this makes a difference
 				eyes.IsEyeTrackingActive = Engine.Current.InputInterface.VR_Active;
-
-				// Add Engine.Current.InputInterface.VR_Active to this?
-				eyes.LeftEye.IsDeviceActive = varjoMemory.calibrated;
-				eyes.RightEye.IsDeviceActive = varjoMemory.calibrated;
-				eyes.CombinedEye.IsDeviceActive = varjoMemory.calibrated;
-				eyes.Timestamp = DateTime.Now.Ticks;
-
-				// Yes, it's a bool
-				eyes.LeftEye.Openness = varjoMemory.leftEye.opened ? 1f : 0f;
-				eyes.RightEye.Openness = varjoMemory.rightEye.opened ? 1f : 0f;
-				eyes.CombinedEye.Openness = varjoMemory.combined.opened ? 1f : 0f;
-
-				// Varjo returns a normalized float for pupilSize. Do we need to divide by a
-				// maximum tracked pupil size constant?
-				eyes.LeftEye.PupilDiameter = (float) varjoMemory.leftEye.pupilSize;
-				eyes.RightEye.PupilDiameter = (float) varjoMemory.rightEye.pupilSize;
-				eyes.CombinedEye.PupilDiameter = (float) varjoMemory.combined.pupilSize;
-
-				// Funny Pimax Code
-				eyes.LeftEye.Direction = new float3(MathX.Tan(Alpha * (float) varjoMemory.leftEye.x),
-													  MathX.Tan(Beta * (-1f) * (float) varjoMemory.leftEye.y),
+				
+				eyes.LeftEye.IsTracking = Engine.Current.InputInterface.VR_Active;
+				eyes.LeftEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
+				eyes.LeftEye.Direction = new float3(MathX.Tan(Alpha * (float)varjoMemory.leftEye.x),
+													  MathX.Tan(Beta * (-1f) * (float)varjoMemory.leftEye.y),
 													  1f).Normalized;
-				eyes.LeftEye.RawPosition = new float3((float) varjoMemory.leftEye.y * (-1f),
-													  (float) varjoMemory.leftEye.x,
+				eyes.LeftEye.RawPosition = new float3((float)varjoMemory.leftEye.y * (-1f),
+													  (float)varjoMemory.leftEye.x,
 													  0f);
+				eyes.LeftEye.PupilDiameter = (float)varjoMemory.leftEye.pupilSize;
+				eyes.LeftEye.Openness = varjoMemory.leftEye.opened ? 0f : 1f;
 
-				eyes.RightEye.Direction = new float3(MathX.Tan(Alpha * (float) varjoMemory.rightEye.x),
-									  MathX.Tan(Beta * (-1f) * (float) varjoMemory.rightEye.y),
-									  1f).Normalized;
+				// eyes.LeftEye.Widen = (float)MathX.Clamp01(varjoMemory.leftEye.y);
+				eyes.LeftEye.Squeeze = (float)MathX.Remap(MathX.Clamp(varjoMemory.leftEye.y, -1f, 0f), -1f, 0f, 0f, 1f);
+				eyes.LeftEye.Frown = 0f;
+
+
+				eyes.RightEye.IsTracking = Engine.Current.InputInterface.VR_Active;
+				eyes.RightEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
+				eyes.RightEye.Direction = new float3(MathX.Tan(Alpha * (float)varjoMemory.rightEye.x),
+					  MathX.Tan(Beta * (-1f) * (float)varjoMemory.rightEye.y),
+					  1f).Normalized;
 				eyes.RightEye.RawPosition = new float3((float)varjoMemory.rightEye.y * (-1f),
 													  (float)varjoMemory.rightEye.x,
 													  0f);
+				eyes.RightEye.PupilDiameter = (float)varjoMemory.rightEye.pupilSize;
+				eyes.RightEye.Openness = varjoMemory.rightEye.opened ? 0f : 1f;
+				// eyes.RightEye.Widen = (float)MathX.Clamp01(varjoMemory.rightEye.y);
+				eyes.RightEye.Squeeze = (float)MathX.Remap(MathX.Clamp(varjoMemory.rightEye.y, -1f, 0f), -1f, 0f, 0f, 1f);
+				eyes.RightEye.Frown = 0f;
 
+
+				eyes.CombinedEye.IsTracking = Engine.Current.InputInterface.VR_Active;
+				eyes.CombinedEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
 				eyes.CombinedEye.Direction = new float3(MathX.Average((float)MathX.Tan(Alpha * varjoMemory.leftEye.y), (float)MathX.Tan(Alpha * varjoMemory.rightEye.y)),
-														 MathX.Average((float)MathX.Tan(Alpha * varjoMemory.leftEye.x), (float)MathX.Tan(Alpha * varjoMemory.rightEye.x)),
-														 1f).Normalized;
+										 MathX.Average((float)MathX.Tan(Alpha * varjoMemory.leftEye.x), (float)MathX.Tan(Alpha * varjoMemory.rightEye.x)),
+										 1f).Normalized;
 				eyes.CombinedEye.RawPosition = new float3(MathX.Average((float)(varjoMemory.leftEye.x + varjoMemory.rightEye.x)),
 														  MathX.Average((float)(varjoMemory.leftEye.y + varjoMemory.rightEye.x)),
 														  0f);
-
-				// Fake Widen and Squeeze based on a user's look up and down
-				eyes.LeftEye.Widen = (float)MathX.Clamp01(varjoMemory.leftEye.y);
-				eyes.LeftEye.Squeeze = (float)MathX.Remap(MathX.Clamp(varjoMemory.leftEye.y, -1f, 0f), -1f, 0f, 0f, 1f);
-
-				eyes.RightEye.Widen = (float)MathX.Clamp01(varjoMemory.rightEye.y);
-				eyes.RightEye.Squeeze = (float)MathX.Remap(MathX.Clamp(varjoMemory.rightEye.y, -1f, 0f), -1f, 0f, 0f, 1f);
-
-				eyes.CombinedEye.Widen = MathX.Average((float)MathX.Clamp01(varjoMemory.leftEye.x), (float)MathX.Clamp01(varjoMemory.rightEye.y));
+				eyes.CombinedEye.PupilDiameter = (float)varjoMemory.combined.pupilSize;
+				eyes.CombinedEye.Openness = varjoMemory.combined.opened ? 0f : 1f;
+				// eyes.CombinedEye.Widen = MathX.Average((float)MathX.Clamp01(varjoMemory.leftEye.x), (float)MathX.Clamp01(varjoMemory.rightEye.y));
 				eyes.CombinedEye.Squeeze = MathX.Average((float)MathX.Remap(MathX.Clamp(varjoMemory.leftEye.y, -1f, 0f), -1f, 0f, 0f, 1f),
                                                                 (float)MathX.Remap(MathX.Clamp(varjoMemory.rightEye.y, -1f, 0f), -1f, 0f, 0f, 1f));
-
-				// Not tracked
-				eyes.LeftEye.Frown = 0f;
-				eyes.RightEye.Frown = 0f;
 				eyes.CombinedEye.Frown = 0f;
+
+
+				eyes.Timestamp = eyeTimestamp;
+				eyeTimestamp += deltaTime;
 			}
 		}
 	}
