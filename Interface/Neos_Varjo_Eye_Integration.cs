@@ -114,6 +114,7 @@ namespace Neos_Varjo_Eye
 				{
 					try
 					{
+						Debug("Trying to establish connection to VarjoCompanion.exe...");
 						MemMapFile = MemoryMappedFile.OpenExisting("VarjoEyeTracking");
 						ViewAccessor = MemMapFile.CreateViewAccessor();
 						return true;
@@ -172,8 +173,8 @@ namespace Neos_Varjo_Eye
 				ViewAccessor.Write(0, ref memoryGazeData);
 				MemMapFile.Dispose();
 				CompanionProcess.Close();
-				// _updateThread.Abort();
 				_cancellationToken.Dispose();
+				_updateThread.Abort();
 			}
 
 			public void Update()
@@ -205,7 +206,7 @@ namespace Neos_Varjo_Eye
 
 			public void RegisterInputs(InputInterface inputInterface)
 			{
-				eyes = new Eyes(inputInterface, "Generic Eye Tracking");
+				eyes = new Eyes(inputInterface, "Varjo Eye Tracking");
 			}
 
 			public void UpdateInputs(float deltaTime)
