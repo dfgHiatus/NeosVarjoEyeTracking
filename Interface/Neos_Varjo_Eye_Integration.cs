@@ -137,6 +137,8 @@ namespace Neos_Varjo_Eye
                                                                 (float)MathX.Remap(MathX.Clamp(memoryData.rightEye.y, -1f, 0f), -1f, 0f, 0f, 1f));
 				eyes.CombinedEye.Frown = 0f;
 
+				Debug(memoryData.rightEye.x);
+				Debug(memoryData.leftEye.x);
 
 				eyes.Timestamp = eyeTimestamp;
 				eyeTimestamp += deltaTime;

@@ -30,10 +30,10 @@ namespace Neos_Varjo_Eye
 
     public class VarjoCompanionInterface
     {
-        private MemoryMappedFile MemMapFile;
-        private MemoryMappedViewAccessor ViewAccessor;
+        public MemoryMappedFile MemMapFile;
+        public MemoryMappedViewAccessor ViewAccessor;
         public MemoryData memoryGazeData;
-        private Process CompanionProcess;
+        public Process CompanionProcess;
 
         public bool ConnectToPipe()
         {
@@ -75,6 +75,7 @@ namespace Neos_Varjo_Eye
         {
             if (MemMapFile == null) return;
             ViewAccessor.Read(0, out memoryGazeData);
+            Neos_Varjo_Eye_Integration.memoryData = memoryGazeData;
         }
 
         public void Teardown()

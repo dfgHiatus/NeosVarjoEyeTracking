@@ -4,18 +4,6 @@ using System.Threading;
 
 namespace Neos_Varjo_Eye
 {
-    // This class contains the overrides for any VRCFT Tracking Data struct functions
-    public static class TrackingData
-    {
-        // This function parses the external module's full-data data into multiple VRCFT-Parseable single-eye structs
-        public static void Update(MemoryData external)
-        {
-            Neos_Varjo_Eye_Integration.memoryData.rightEye = external.rightEye;
-            Neos_Varjo_Eye_Integration.memoryData.leftEye = external.leftEye;
-            Neos_Varjo_Eye_Integration.memoryData.combined = external.combined;
-        }
-    }
-    
     public class VarjoTrackingModule
     {
         public static readonly VarjoCompanionInterface tracker = new VarjoCompanionInterface();
