@@ -53,12 +53,11 @@
   <ItemGroup>
     <Compile Include="Neos_Varjo_Eye_Integration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="VarjoCompanionInterface.cs" />
+    <Compile Include="VarjoTrackingModule.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="TrackingLibs\VarjoLib.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
