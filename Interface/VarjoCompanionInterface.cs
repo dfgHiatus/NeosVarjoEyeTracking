@@ -39,7 +39,6 @@ namespace Neos_Varjo_Eye
         {
             if (!VarjoAvailable())
             {
-                // Warn("Varjo headset isn't detected");
                 return false;
             }
             var modDir = Path.Combine(Engine.Current.AppPath, "nml_mods");

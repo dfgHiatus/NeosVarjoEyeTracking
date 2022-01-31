@@ -31,7 +31,7 @@ namespace Neos_Varjo_Eye
 				{
 					if (!VarjoTrackingModule.tracker.ConnectToPipe())
                     {
-						Warn("Gaze tracking is not allowed! Please enable it in the Varjo Base!");
+						Warn("Varjo headset isn't detected");
 					}
 					else
                     {

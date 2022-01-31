@@ -1,7 +1,6 @@
-﻿using static Neos_Varjo_Eye.VarjoCompanionInterface;
-using System;
+﻿using System;
 using System.Threading;
-using BaseX;
+
 
 namespace Neos_Varjo_Eye
 {
