@@ -1,7 +1,7 @@
 # NeosVarjoEyeTracking 
 
 A [NeosModLoader](https://github.com/zkxs/NeosModLoader) mod for [Neos VR](https://neos.com/)  
-Integrates the Varjo Areo's Eye tracking into NeosVR. Tracks per eye and combined:
+Integrates the Varjo Aero's Eye tracking into NeosVR. Tracks per eye and combined:
 - Eye Openness
 - Gaze Origin
 - Gaze Direction
