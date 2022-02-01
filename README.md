@@ -1,18 +1,17 @@
-# Neos-Eye-Face-API
+# NeosVarjoEyeTracking 
 
 A [NeosModLoader](https://github.com/zkxs/NeosModLoader) mod for [Neos VR](https://neos.com/)  
-Enables developers to add implement their own eye and face tracking solutions for NeosVR.
+Integrates the Varjo Areo's Eye tracking into NeosVR
 
 Related issue on the Neos Github:
-https://github.com/Neos-Metaverse/NeosPublic/issues/1140
+https://github.com/Neos-Metaverse/NeosPublic/issues/3226
 
 ## Usage
-0. Install [NeosModLoader](https://github.com/zkxs/NeosModLoader).
-1. Clone this Repository
-2. Update EyeTracker.cs and MouthTracker.cs's parameters with values of your own.
-3. Build and place your DLL under "nml_mods". This folder should be at `C:\Program Files (x86)\Steam\steamapps\common\NeosVR\nml_mods` for a default install. You can create it if it's missing, or if you launch the game once with NeosModLoader.
-5. Start the game!
+1. Install [NeosModLoader](https://github.com/zkxs/NeosModLoader).
+2. Download the latest release, and extract the zip file's contents to your mods folder. This folder should be at `C:\Program Files (x86)\Steam\steamapps\common\NeosVR\nml_mods` for a default install. You can create it if it's missing, or if you launch the game once with NeosModLoader.
+3. Copy the file called "VarjoLib.dll" from your mods folder and paste it into your Neos base directory. This is one folder above your mods, it should be at `C:\Program Files (x86)\Steam\steamapps\common\NeosVR` for a default install. Additonally, if you are using the Steam build, you can right-click "Neos -> Manage -> Browse Local Files" to get your install directory.
+4. Start the game!
 
-If you want to verify that the mod is working you can check your Neos logs, or create an EmptyObject with an AvatarRawEyeData/AvatarRawMouthData Component (Found under Users -> Common Avatar System -> Face -> AvatarRawEyeData/AvatarRawMouthData).
+If you want to verify that the mod is working you can check your Neos logs, equip an eye-tracking ready avatar, or create an EmptyObject with an AvatarRawEyeData Component (Found under Users -> Common Avatar System -> Face -> AvatarRawEyeData).
 
 Thanks to those who helped me test this!
