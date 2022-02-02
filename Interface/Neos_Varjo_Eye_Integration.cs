@@ -8,11 +8,11 @@ namespace Neos_Varjo_Eye
 {
 	public class Neos_Varjo_Eye_Integration : NeosMod
 	{
-		public static MemoryData memoryData;
+		public static GazeData gazeData;
 
 		public override string Name => "Neos-Varjo-Eye-Integration";
 		public override string Author => "dfgHiatus";
-		public override string Version => "1.0.0";
+		public override string Version => "1.0.1";
 		public override string Link => "https://github.com/dfgHiatus/Neos-Eye-Face-API/";
 		public override void OnEngineInit()
 		{
@@ -64,10 +64,16 @@ namespace Neos_Varjo_Eye
 		{
 			public Eyes eyes;
 			public int UpdateOrder => 100;
-			public float eyeTimestamp = 0f;
-			// These values need to be tweaked per user
-			public float Alpha = 2f;
-			public float Beta = 2f;
+			public int GazeStatusValid = 2; // Blink only if the GazeEyeStatus is Valid
+			public int GazeEyeStatusTracked = 1;
+			public int GazeEyeStatusBlinkOrSaccade = 3; // Blink only if the GazeEyeStatus is a saccade or blink
+
+			// public float Alpha = 1f; // Eye Swing Up/Down
+			// public float Beta = 1f; // Eye Swing Left/Right
+
+			// Idle pupil size in mm. Did you know the average human pupil size is between 4 and 6mm?
+			// pupilSize is normalized from 0 to 1, so idle is 0.5 or ~3mm
+			public float userPupilDiameter = 0.06f;
 
 			public void CollectDeviceInfos(DataTreeList list)
 			{
@@ -87,61 +93,59 @@ namespace Neos_Varjo_Eye
 			{
 				VarjoTrackingModule.tracker.Update();
 
-				// Current eye data assumes a data format similar to the Pimax
-				// Widen doesn't show up in the Pimax tracker, see if omitting this makes a difference
+				// Current eye data takes on a data format similar to the Pimax, x and y values normalized from -1 to 1
 				eyes.IsEyeTrackingActive = Engine.Current.InputInterface.VR_Active;
-				
-				eyes.LeftEye.IsTracking = Engine.Current.InputInterface.VR_Active;
-				eyes.LeftEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
-				eyes.LeftEye.Direction = new float3(MathX.Tan(Alpha * (float)memoryData.leftEye.x),
-													  MathX.Tan(Beta * (-1f) * (float)memoryData.leftEye.y),
-													  1f).Normalized;
-				eyes.LeftEye.RawPosition = new float3((float)memoryData.leftEye.y * (-1f),
-													  (float)memoryData.leftEye.x,
-													  0f);
-				eyes.LeftEye.PupilDiameter = (float)memoryData.leftEye.pupilSize;
-				eyes.LeftEye.Openness = memoryData.leftEye.opened ? 0f : 1f;
 
-				// eyes.LeftEye.Widen = (float)MathX.Clamp01(memoryData.leftEye.y);
-				eyes.LeftEye.Squeeze = (float)MathX.Remap(MathX.Clamp(memoryData.leftEye.y, -1f, 0f), -1f, 0f, 0f, 1f);
+				eyes.LeftEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
+				eyes.LeftEye.IsTracking = ((int)gazeData.leftStatus) == GazeEyeStatusTracked;
+				eyes.LeftEye.Direction = (float3)new double3(gazeData.leftEye.forward.x,
+													  gazeData.leftEye.forward.y,
+													  gazeData.leftEye.forward.z);
+				eyes.LeftEye.RawPosition = (float3)new double3(gazeData.leftEye.origin.x,
+													  gazeData.leftEye.origin.y,
+													  gazeData.leftEye.origin.z);
+				eyes.LeftEye.PupilDiameter = (float)(gazeData.leftPupilSize * userPupilDiameter);
+				eyes.LeftEye.Openness = ((int)gazeData.leftStatus) == GazeEyeStatusBlinkOrSaccade ? 1f : 0f; 
+				eyes.LeftEye.Widen = (float)MathX.Clamp01(gazeData.leftEye.forward.y);
+				eyes.LeftEye.Squeeze = 0f;
 				eyes.LeftEye.Frown = 0f;
 
-
-				eyes.RightEye.IsTracking = Engine.Current.InputInterface.VR_Active;
 				eyes.RightEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
-				eyes.RightEye.Direction = new float3(MathX.Tan(Alpha * (float)memoryData.rightEye.x),
-					  MathX.Tan(Beta * (-1f) * (float)memoryData.rightEye.y),
-					  1f).Normalized;
-				eyes.RightEye.RawPosition = new float3((float)memoryData.rightEye.y * (-1f),
-													  (float)memoryData.rightEye.x,
-													  0f);
-				eyes.RightEye.PupilDiameter = (float)memoryData.rightEye.pupilSize;
-				eyes.RightEye.Openness = memoryData.rightEye.opened ? 0f : 1f;
-				// eyes.RightEye.Widen = (float)MathX.Clamp01(memoryData.rightEye.y);
-				eyes.RightEye.Squeeze = (float)MathX.Remap(MathX.Clamp(memoryData.rightEye.y, -1f, 0f), -1f, 0f, 0f, 1f);
+				eyes.RightEye.IsTracking = ((int)gazeData.leftStatus) == GazeEyeStatusTracked;
+				eyes.RightEye.Direction = (float3)new double3(gazeData.rightEye.forward.x,
+													  gazeData.rightEye.forward.y,
+													  gazeData.rightEye.forward.z);
+				eyes.RightEye.RawPosition = (float3)new double3(gazeData.rightEye.origin.x,
+													  gazeData.rightEye.origin.y,
+													  gazeData.rightEye.origin.z);
+				eyes.RightEye.PupilDiameter = (float)(gazeData.rightPupilSize * userPupilDiameter);
+				eyes.RightEye.Openness = ((int)gazeData.rightStatus) == GazeEyeStatusBlinkOrSaccade ? 1f : 0f;
+				eyes.RightEye.Widen = (float)MathX.Clamp01(gazeData.rightEye.forward.y);
+				eyes.RightEye.Squeeze = 0f;
 				eyes.RightEye.Frown = 0f;
 
-
-				eyes.CombinedEye.IsTracking = Engine.Current.InputInterface.VR_Active;
 				eyes.CombinedEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
-				eyes.CombinedEye.Direction = new float3(MathX.Average((float)MathX.Tan(Alpha * memoryData.leftEye.y), (float)MathX.Tan(Alpha * memoryData.rightEye.y)),
-										 MathX.Average((float)MathX.Tan(Alpha * memoryData.leftEye.x), (float)MathX.Tan(Alpha * memoryData.rightEye.x)),
-										 1f).Normalized;
-				eyes.CombinedEye.RawPosition = new float3(MathX.Average((float)(memoryData.leftEye.x + memoryData.rightEye.x)),
-														  MathX.Average((float)(memoryData.leftEye.y + memoryData.rightEye.x)),
-														  0f);
-				eyes.CombinedEye.PupilDiameter = (float)memoryData.combined.pupilSize;
-				eyes.CombinedEye.Openness = memoryData.combined.opened ? 0f : 1f;
-				// eyes.CombinedEye.Widen = MathX.Average((float)MathX.Clamp01(memoryData.leftEye.x), (float)MathX.Clamp01(memoryData.rightEye.y));
-				eyes.CombinedEye.Squeeze = MathX.Average((float)MathX.Remap(MathX.Clamp(memoryData.leftEye.y, -1f, 0f), -1f, 0f, 0f, 1f),
-                                                                (float)MathX.Remap(MathX.Clamp(memoryData.rightEye.y, -1f, 0f), -1f, 0f, 0f, 1f));
+				eyes.CombinedEye.IsTracking = ((int)gazeData.status) == GazeStatusValid;
+				eyes.CombinedEye.Direction = (float3)new double3(gazeData.gaze.forward.x,
+													  gazeData.gaze.forward.y,
+													  gazeData.gaze.forward.z);
+				eyes.CombinedEye.RawPosition = (float3)new double3(gazeData.gaze.origin.x,
+													  gazeData.gaze.origin.y,
+													  gazeData.gaze.origin.z);
+				eyes.CombinedEye.PupilDiameter = MathX.Average((float)(gazeData.leftPupilSize * userPupilDiameter),
+					(float)(gazeData.rightPupilSize * userPupilDiameter));
+				eyes.CombinedEye.Openness = ((int)gazeData.leftStatus) == GazeEyeStatusBlinkOrSaccade
+					|| ((int)gazeData.rightStatus) == GazeEyeStatusBlinkOrSaccade ? 1f : 0f; 
+				eyes.CombinedEye.Widen = (float)MathX.Clamp01(gazeData.gaze.forward.y);
+				eyes.CombinedEye.Squeeze = 0f;
 				eyes.CombinedEye.Frown = 0f;
 
-				Debug(memoryData.rightEye.x);
-				Debug(memoryData.leftEye.x);
-
-				eyes.Timestamp = eyeTimestamp;
-				eyeTimestamp += deltaTime;
+				// Convergence Distance is NOT Focus Distance, but we need to get it in somehow!
+				if (gazeData.stability > 0.75) {
+					eyes.ConvergenceDistance = (float)gazeData.focusDistance;
+				}
+ 
+				eyes.Timestamp = gazeData.captureTime; // Use frameNumber?
 			}
 		}
 	}
