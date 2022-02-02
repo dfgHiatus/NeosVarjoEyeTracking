@@ -4,9 +4,9 @@ using FrooxEngine;
 using BaseX;
 using System;
 
-namespace Neos_Varjo_Eye
+namespace NeosVarjoEye
 {
-	public class Neos_Varjo_Eye_Integration : NeosMod
+	public class NeosVarjoEye : NeosMod
 	{
 		public static GazeData gazeData;
 

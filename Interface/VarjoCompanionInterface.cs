@@ -7,12 +7,11 @@ using System.Threading;
 using FrooxEngine;
 using BaseX;
 
-namespace Neos_Varjo_Eye
+namespace NeosVarjoEye
 {
     [StructLayout(LayoutKind.Sequential)]
     public struct Vector
     {
-
         public double x;
         public double y;
         public double z;
@@ -146,7 +145,7 @@ namespace Neos_Varjo_Eye
         {
             if (MemMapFile == null) return;
             ViewAccessor.Read(0, out memoryGazeData);
-            Neos_Varjo_Eye_Integration.gazeData = memoryGazeData;
+            NeosVarjoEye.gazeData = memoryGazeData;
         }
 
         public void Teardown()

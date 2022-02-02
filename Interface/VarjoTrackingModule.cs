@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Threading;
 
-
-namespace Neos_Varjo_Eye
+namespace NeosVarjoEye
 {
     public class VarjoTrackingModule
     {
