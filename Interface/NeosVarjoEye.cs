@@ -64,11 +64,8 @@ namespace NeosVarjoEye
 		{
 			public Eyes eyes;
 			public int UpdateOrder => 100;
-			public int GazeStatusValid = 2; // Blink only if the GazeEyeStatus is Valid
-			public int GazeEyeStatusTracked = 1;
-			public int GazeEyeStatusBlinkOrSaccade = 3; // Blink only if the GazeEyeStatus is a saccade or blink
 
-			// public float Alpha = 1f; // Eye Swing Up/Down
+			public float Alpha = 1.5f; // Eye Swing Up/Down
 			// public float Beta = 1f; // Eye Swing Left/Right
 
 			// Idle pupil size in mm. Did you know the average human pupil size is between 4 and 6mm?
@@ -97,7 +94,8 @@ namespace NeosVarjoEye
 				eyes.IsEyeTrackingActive = Engine.Current.InputInterface.VR_Active;
 
 				eyes.LeftEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
-				eyes.LeftEye.IsTracking = ((int)gazeData.leftStatus) == GazeEyeStatusTracked;
+				eyes.LeftEye.IsTracking = gazeData.leftStatus == GazeEyeStatus.Compensated ||
+					gazeData.leftStatus == GazeEyeStatus.Tracked;
 				eyes.LeftEye.Direction = (float3)new double3(gazeData.leftEye.forward.x,
 													  gazeData.leftEye.forward.y,
 													  gazeData.leftEye.forward.z);
@@ -105,13 +103,14 @@ namespace NeosVarjoEye
 													  gazeData.leftEye.origin.y,
 													  gazeData.leftEye.origin.z);
 				eyes.LeftEye.PupilDiameter = (float)(gazeData.leftPupilSize * userPupilDiameter);
-				eyes.LeftEye.Openness = ((int)gazeData.leftStatus) == GazeEyeStatusBlinkOrSaccade ? 1f : 0f; 
+				eyes.LeftEye.Openness = gazeData.leftStatus == GazeEyeStatus.Invalid ? 0f : 1f; 
 				eyes.LeftEye.Widen = (float)MathX.Clamp01(gazeData.leftEye.forward.y);
 				eyes.LeftEye.Squeeze = 0f;
 				eyes.LeftEye.Frown = 0f;
 
 				eyes.RightEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
-				eyes.RightEye.IsTracking = ((int)gazeData.leftStatus) == GazeEyeStatusTracked;
+				eyes.RightEye.IsTracking = gazeData.rightStatus == GazeEyeStatus.Compensated ||
+					gazeData.rightStatus == GazeEyeStatus.Tracked;
 				eyes.RightEye.Direction = (float3)new double3(gazeData.rightEye.forward.x,
 													  gazeData.rightEye.forward.y,
 													  gazeData.rightEye.forward.z);
@@ -119,13 +118,13 @@ namespace NeosVarjoEye
 													  gazeData.rightEye.origin.y,
 													  gazeData.rightEye.origin.z);
 				eyes.RightEye.PupilDiameter = (float)(gazeData.rightPupilSize * userPupilDiameter);
-				eyes.RightEye.Openness = ((int)gazeData.rightStatus) == GazeEyeStatusBlinkOrSaccade ? 1f : 0f;
+				eyes.RightEye.Openness = gazeData.rightStatus == GazeEyeStatus.Invalid ? 0f : 1f;
 				eyes.RightEye.Widen = (float)MathX.Clamp01(gazeData.rightEye.forward.y);
 				eyes.RightEye.Squeeze = 0f;
 				eyes.RightEye.Frown = 0f;
 
 				eyes.CombinedEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
-				eyes.CombinedEye.IsTracking = ((int)gazeData.status) == GazeStatusValid;
+				eyes.CombinedEye.IsTracking = gazeData.status == GazeStatus.Valid;
 				eyes.CombinedEye.Direction = (float3)new double3(gazeData.gaze.forward.x,
 													  gazeData.gaze.forward.y,
 													  gazeData.gaze.forward.z);
@@ -134,18 +133,19 @@ namespace NeosVarjoEye
 													  gazeData.gaze.origin.z);
 				eyes.CombinedEye.PupilDiameter = MathX.Average((float)(gazeData.leftPupilSize * userPupilDiameter),
 					(float)(gazeData.rightPupilSize * userPupilDiameter));
-				eyes.CombinedEye.Openness = ((int)gazeData.leftStatus) == GazeEyeStatusBlinkOrSaccade
-					|| ((int)gazeData.rightStatus) == GazeEyeStatusBlinkOrSaccade ? 1f : 0f; 
+				eyes.CombinedEye.Openness = gazeData.leftStatus == GazeEyeStatus.Invalid ||
+					gazeData.rightStatus == GazeEyeStatus.Invalid ? 0f : 1f;
 				eyes.CombinedEye.Widen = (float)MathX.Clamp01(gazeData.gaze.forward.y);
 				eyes.CombinedEye.Squeeze = 0f;
 				eyes.CombinedEye.Frown = 0f;
 
-				// Convergence Distance is NOT Focus Distance, but we need to get it in somehow!
+				// Convergence Distance is NOT Focus Distance, but we need to get it in somehow
 				if (gazeData.stability > 0.75) {
-					eyes.ConvergenceDistance = (float)gazeData.focusDistance;
+					eyes.ConvergenceDistance = (float) gazeData.focusDistance;
 				}
- 
-				eyes.Timestamp = gazeData.captureTime; // Use frameNumber?
+
+				// eyes.Timestamp = gazeData.captureTime / 1000000000; // Convert nanoseconds to seconds with this one nifty trick!
+				eyes.Timestamp = gazeData.frameNumber;
 			}
 		}
 	}
