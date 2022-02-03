@@ -6,6 +6,8 @@ Integrates the Varjo Aero's Eye tracking into NeosVR. Tracks per eye and combine
 - Gaze Origin
 - Gaze Direction
 - Pupil Diameter
+- Focus Distance
+- Timestamp
 
 Related issue on the Neos Github:
 https://github.com/Neos-Metaverse/NeosPublic/issues/3226
