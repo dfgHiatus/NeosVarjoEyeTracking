@@ -65,7 +65,7 @@ namespace NeosVarjoEye
 			public Eyes eyes;
 			public int UpdateOrder => 100;
 
-			public float Alpha = 1.5f; // Eye Swing Up/Down
+			// public float Alpha = 1f; // Eye Swing Up/Down
 			// public float Beta = 1f; // Eye Swing Left/Right
 
 			// Idle pupil size in mm. Did you know the average human pupil size is between 4 and 6mm?
