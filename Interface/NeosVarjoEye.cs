@@ -70,7 +70,7 @@ namespace NeosVarjoEye
 
 			// Idle pupil size in mm. Did you know the average human pupil size is between 4 and 6mm?
 			// pupilSize is normalized from 0 to 1, so idle is 0.5 or ~3mm
-			public float userPupilDiameter = 0.06f;
+			public float userPupilDiameter = 0.065f;
 
 			public void CollectDeviceInfos(DataTreeList list)
 			{
@@ -102,7 +102,10 @@ namespace NeosVarjoEye
 				eyes.LeftEye.RawPosition = (float3)new double3(gazeData.leftEye.origin.x,
 													  gazeData.leftEye.origin.y,
 													  gazeData.leftEye.origin.z);
-				eyes.LeftEye.PupilDiameter = (float)(gazeData.leftPupilSize * userPupilDiameter);
+				if (gazeData.leftStatus != GazeEyeStatus.Invalid)
+				{
+					eyes.LeftEye.PupilDiameter = (float)(gazeData.leftPupilSize * userPupilDiameter);
+				}
 				eyes.LeftEye.Openness = gazeData.leftStatus == GazeEyeStatus.Invalid ? 0f : 1f; 
 				eyes.LeftEye.Widen = (float)MathX.Clamp01(gazeData.leftEye.forward.y);
 				eyes.LeftEye.Squeeze = 0f;
@@ -117,7 +120,10 @@ namespace NeosVarjoEye
 				eyes.RightEye.RawPosition = (float3)new double3(gazeData.rightEye.origin.x,
 													  gazeData.rightEye.origin.y,
 													  gazeData.rightEye.origin.z);
-				eyes.RightEye.PupilDiameter = (float)(gazeData.rightPupilSize * userPupilDiameter);
+				if (gazeData.rightStatus != GazeEyeStatus.Invalid)
+				{
+					eyes.RightEye.PupilDiameter = (float)(gazeData.rightPupilSize * userPupilDiameter);
+				}
 				eyes.RightEye.Openness = gazeData.rightStatus == GazeEyeStatus.Invalid ? 0f : 1f;
 				eyes.RightEye.Widen = (float)MathX.Clamp01(gazeData.rightEye.forward.y);
 				eyes.RightEye.Squeeze = 0f;
@@ -131,8 +137,12 @@ namespace NeosVarjoEye
 				eyes.CombinedEye.RawPosition = (float3)new double3(gazeData.gaze.origin.x,
 													  gazeData.gaze.origin.y,
 													  gazeData.gaze.origin.z);
-				eyes.CombinedEye.PupilDiameter = MathX.Average((float)(gazeData.leftPupilSize * userPupilDiameter),
-					(float)(gazeData.rightPupilSize * userPupilDiameter));
+				if (gazeData.leftStatus != GazeEyeStatus.Invalid &&
+					gazeData.rightStatus != GazeEyeStatus.Invalid)
+				{
+					eyes.CombinedEye.PupilDiameter = MathX.Average((float)(gazeData.leftPupilSize * userPupilDiameter),
+										(float)(gazeData.rightPupilSize * userPupilDiameter));
+				}
 				eyes.CombinedEye.Openness = gazeData.leftStatus == GazeEyeStatus.Invalid ||
 					gazeData.rightStatus == GazeEyeStatus.Invalid ? 0f : 1f;
 				eyes.CombinedEye.Widen = (float)MathX.Clamp01(gazeData.gaze.forward.y);
