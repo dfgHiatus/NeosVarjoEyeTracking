@@ -16,7 +16,7 @@ namespace NeosVarjoEye
 		// Hack to compensate for accurate timestamp. 
 		// TODO: Update gazeData to have GazeOutputFrequency
 		[AutoRegisterConfigKey]
-		public static ModConfigurationKey<GazeOutputFrequency> DEVICE_FREQUENCY = new ModConfigurationKey<GazeOutputFrequency>("is_enabled", "Gaze Output Frequency (Timestamp)", () => GazeOutputFrequency.Frequency100Hz);
+		public static ModConfigurationKey<GazeOutputFrequency> DEVICE_FREQUENCY = new ModConfigurationKey<GazeOutputFrequency>("gaze_frequency", "Gaze Output Frequency (Used to compute timestamp)", () => GazeOutputFrequency.Frequency100Hz);
 		public static readonly Dictionary<GazeOutputFrequency, int> freqDict = new Dictionary<GazeOutputFrequency, int>(){
 			{ GazeOutputFrequency.MaximumSupported, 200 },
 			{ GazeOutputFrequency.Frequency100Hz, 100 },
