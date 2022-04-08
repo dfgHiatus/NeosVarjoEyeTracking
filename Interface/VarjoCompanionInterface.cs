@@ -124,6 +124,7 @@ namespace NeosVarjoEye
                 {
                     MemMapFile = MemoryMappedFile.OpenExisting("VarjoEyeTracking");
                     ViewAccessor = MemMapFile.CreateViewAccessor();
+                    UniLog.Log("Connected to Companion App!");
                     return true;
                 }
                 catch (FileNotFoundException)
