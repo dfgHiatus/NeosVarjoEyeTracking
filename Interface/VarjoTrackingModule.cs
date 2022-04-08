@@ -5,15 +5,13 @@ namespace NeosVarjoEye
 {
     public class VarjoTrackingModule
     {
-        public static readonly VarjoCompanionInterface tracker = new VarjoCompanionInterface();
-        private static CancellationTokenSource _cancellationToken;
+        public VarjoCompanionInterface tracker = new VarjoCompanionInterface();
+        public CancellationTokenSource _cancellationToken;
 
         // Synchronous module initialization. Take as much time as you need to initialize any external modules. This runs in the init-thread
-        public (bool eyeSuccess, bool lipSuccess) Initialize(bool eye, bool lip)
+        public bool Initialize()
         {
-            // MelonLogger.Msg("Initializing Varjo module");
-            bool pipeConnected = tracker.ConnectToPipe();
-            return (pipeConnected, false);
+            return tracker.ConnectToPipe();
         }
 
         // This will be run in the tracking thread. This is exposed so you can control when and if the tracking data is updated down to the lowest level.
@@ -42,10 +40,6 @@ namespace NeosVarjoEye
             _cancellationToken.Cancel();
             tracker.Teardown();
             _cancellationToken.Dispose();
-            // MelonLogger.Msg("Teardown");
         }
-
-        public bool SupportsEye => true;
-        public bool SupportsLip => false;
     }
 }

@@ -9,7 +9,7 @@ namespace NeosVarjoEye
 {
 	public class NeosVarjoEye : NeosMod
 	{
-		[AutoRegisterConfigKey]
+/*		[AutoRegisterConfigKey]
 		public static ModConfigurationKey<bool> IS_ENABLED = new ModConfigurationKey<bool>("is_enabled", "Eye Tracking Enabled", () => true);
 
 		[AutoRegisterConfigKey]
@@ -20,8 +20,9 @@ namespace NeosVarjoEye
 			{ GazeOutputFrequency.Frequency200Hz, 200 },
 		};
 
-		public static ModConfiguration config;
+		public static ModConfiguration config;*/
 
+		public static VarjoTrackingModule tracker;
 		public static GazeData gazeData;
 		public override string Name => "Neos-Varjo-Eye-Integration";
 		public override string Author => "dfgHiatus";
@@ -31,7 +32,7 @@ namespace NeosVarjoEye
 		{
 			// Harmony.DEBUG = true;
 			Harmony harmony = new Harmony("net.dfgHiatus.NeosVarjoEyeTracking");
-			config = GetConfiguration();
+			// config = GetConfiguration();
 			harmony.PatchAll();
 		}
 
@@ -43,8 +44,10 @@ namespace NeosVarjoEye
 			{
 				try
 				{
-					if (VarjoTrackingModule.tracker.ConnectToPipe())
+					tracker = new VarjoTrackingModule();
+					if (tracker.Initialize())
 					{
+						tracker.GetUpdateThreadFunc();
 						Debug("Gaze tracking enabled for Varjo HMD.");
 						GenericInputDevice gen = new GenericInputDevice();
 						__instance.RegisterInputDriver(gen);
@@ -67,7 +70,7 @@ namespace NeosVarjoEye
 		{
 			public static bool Prefix()
 			{
-				VarjoTrackingModule.tracker.Teardown();
+				tracker.Teardown();
 				return true;
 			}
 		}
@@ -97,9 +100,8 @@ namespace NeosVarjoEye
 
 			public void UpdateInputs(float deltaTime)
 			{
-				if (config.GetValue(IS_ENABLED))
-                {
-					VarjoTrackingModule.tracker.Update();
+				// if (config.GetValue(IS_ENABLED))
+                // {
 
 					// Current eye data takes on a data format similar to the Pimax, x and y values normalized from -1 to 1
 					eyes.IsEyeTrackingActive = Engine.Current.InputInterface.VR_Active;
@@ -165,19 +167,19 @@ namespace NeosVarjoEye
 						eyes.ConvergenceDistance = (float) gazeData.focusDistance;
 					}
 
-					/*
-					* Copied from https://developer.varjo.com/docs/native/introduction-to-varjo-sdk:
-					* 
-					* Timing
-						"Varjo uses nanoseconds as a time unit...
-						Because measuring time in nanoseconds yields very large numbers, you should be aware of possible precision issues when casting to other types."
-					*
-					* Yeah, gazeData.captureTime is wonky. It straight up does *NOT* want to work with Neos. 
-					* Oh well, gazeData.frameNumber it is! gazeData.frameNumber / GazeOutputFrequency should be timeframe anyways hehe
-					*/
+				/*
+				* Copied from https://developer.varjo.com/docs/native/introduction-to-varjo-sdk:
+				* 
+				* Timing
+					"Varjo uses nanoseconds as a time unit...
+					Because measuring time in nanoseconds yields very large numbers, you should be aware of possible precision issues when casting to other types."
+				*
+				* Yeah, gazeData.captureTime is wonky. It straight up does *NOT* want to work with Neos. 
+				* Oh well, gazeData.frameNumber it is! gazeData.frameNumber / GazeOutputFrequency should be timeframe anyways hehe
+				*/
 
-					eyes.Timestamp = gazeData.frameNumber / freqDict[config.GetValue(DEVICE_FREQUENCY)];
-                }	
+				eyes.Timestamp = gazeData.frameNumber; // / freqDict[config.GetValue(DEVICE_FREQUENCY)];
+                // }	
 			}
 		}
 	}
