@@ -9,30 +9,31 @@ namespace NeosVarjoEye
 {
 	public class NeosVarjoEye : NeosMod
 	{
-/*		[AutoRegisterConfigKey]
-		public static ModConfigurationKey<bool> IS_ENABLED = new ModConfigurationKey<bool>("is_enabled", "Eye Tracking Enabled", () => true);
+		// Ideally we could disable eye tracking on the fly, but once it's there we can't uninitialize it like the VPE
+		// [AutoRegisterConfigKey]
+		// public static ModConfigurationKey<bool> IS_ENABLED = new ModConfigurationKey<bool>("is_enabled", "Eye Tracking Enabled", () => true);
 
+		// Hack to compensate for accurate timestamp. 
+		// TODO: Update gazeData to have GazeOutputFrequency
 		[AutoRegisterConfigKey]
 		public static ModConfigurationKey<GazeOutputFrequency> DEVICE_FREQUENCY = new ModConfigurationKey<GazeOutputFrequency>("is_enabled", "Gaze Output Frequency (Timestamp)", () => GazeOutputFrequency.Frequency100Hz);
-		public static Dictionary<GazeOutputFrequency, int> freqDict = new Dictionary<GazeOutputFrequency, int>(){
+		public static readonly Dictionary<GazeOutputFrequency, int> freqDict = new Dictionary<GazeOutputFrequency, int>(){
 			{ GazeOutputFrequency.MaximumSupported, 200 },
 			{ GazeOutputFrequency.Frequency100Hz, 100 },
 			{ GazeOutputFrequency.Frequency200Hz, 200 },
 		};
 
-		public static ModConfiguration config;*/
-
-		public static VarjoTrackingModule tracker;
+		public static ModConfiguration config;
 		public static GazeData gazeData;
 		public override string Name => "Neos-Varjo-Eye-Integration";
 		public override string Author => "dfgHiatus";
-		public override string Version => "1.0.4a";
+		public override string Version => "1.0.4";
 		public override string Link => "https://github.com/dfgHiatus/NeosVarjoEyeTracking";
 		public override void OnEngineInit()
 		{
 			// Harmony.DEBUG = true;
 			Harmony harmony = new Harmony("net.dfgHiatus.NeosVarjoEyeTracking");
-			// config = GetConfiguration();
+			config = GetConfiguration();
 			harmony.PatchAll();
 		}
 
@@ -44,23 +45,19 @@ namespace NeosVarjoEye
 			{
 				try
 				{
-					tracker = new VarjoTrackingModule();
-					if (tracker.Initialize())
+					if (VarjoTrackingModule.tracker.ConnectToPipe())
 					{
-						tracker.GetUpdateThreadFunc();
 						Debug("Gaze tracking enabled for Varjo HMD.");
 						GenericInputDevice gen = new GenericInputDevice();
 						__instance.RegisterInputDriver(gen);
 					}
 					else
-					{
 						Warn("Varjo headset isn't detected.");
-					}
 				}
-				catch (Exception e)
+				catch (Exception ex)
 				{
 					Warn("Module failed to initiallize.");
-					Warn(e.ToString());
+					Warn(ex.ToString());
 				}
 			}
 		}
@@ -70,7 +67,7 @@ namespace NeosVarjoEye
 		{
 			public static bool Prefix()
 			{
-				tracker.Teardown();
+				VarjoTrackingModule.tracker.Teardown();
 				return true;
 			}
 		}
@@ -80,6 +77,7 @@ namespace NeosVarjoEye
 			public Eyes eyes;
 			public int UpdateOrder => 100;
 
+			// TODO: Update gazeData to have proper pupil dilation. I'll do this whern they add eye openess.
 			// Idle pupil size in mm. Did you know the average human pupil size is between 4 and 6mm?
 			// pupilSize is normalized from 0 to 1, so idle is 0.5 or ~3mm
 			public float userPupilDiameter = 0.065f;
@@ -171,14 +169,14 @@ namespace NeosVarjoEye
 				* Copied from https://developer.varjo.com/docs/native/introduction-to-varjo-sdk:
 				* 
 				* Timing
-					"Varjo uses nanoseconds as a time unit...
+					"Varjo uses nanoseconds as a time unit ...
 					Because measuring time in nanoseconds yields very large numbers, you should be aware of possible precision issues when casting to other types."
 				*
 				* Yeah, gazeData.captureTime is wonky. It straight up does *NOT* want to work with Neos. 
-				* Oh well, gazeData.frameNumber it is! gazeData.frameNumber / GazeOutputFrequency should be timeframe anyways hehe
+				* Oh well, gazeData.frameNumber it is! gazeData.frameNumber / GazeOutputFrequency will be correct anyways
 				*/
 
-				eyes.Timestamp = gazeData.frameNumber; // / freqDict[config.GetValue(DEVICE_FREQUENCY)];
+				eyes.Timestamp = gazeData.frameNumber / freqDict[config.GetValue(DEVICE_FREQUENCY)];
                 // }	
 			}
 		}

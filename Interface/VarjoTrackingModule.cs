@@ -5,8 +5,8 @@ namespace NeosVarjoEye
 {
     public class VarjoTrackingModule
     {
-        public VarjoCompanionInterface tracker = new VarjoCompanionInterface();
-        public CancellationTokenSource _cancellationToken;
+        public static readonly VarjoCompanionInterface tracker = new VarjoCompanionInterface();
+        private static CancellationTokenSource _cancellationToken;
 
         // Synchronous module initialization. Take as much time as you need to initialize any external modules. This runs in the init-thread
         public bool Initialize()
