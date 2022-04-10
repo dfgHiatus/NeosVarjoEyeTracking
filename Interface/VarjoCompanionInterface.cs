@@ -129,7 +129,7 @@ namespace NeosVarjoEye
                 }
                 catch (FileNotFoundException)
                 {
-                    UniLog.Log("VarjoEyeTracking mapped file doesn't exist; the companion app probably isn't running");
+                    UniLog.Log($"Trying to connect to the Companion App. Attempt {i}/5");
                 }
                 catch (Exception ex)
                 {
