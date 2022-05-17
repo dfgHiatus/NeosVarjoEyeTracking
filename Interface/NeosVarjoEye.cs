@@ -54,8 +54,11 @@ namespace NeosVarjoEye
 		public class GenericInputDevice : IInputDriver
 		{
 			public Eyes eyes;
+
 			public float userPupilDiameter = 0.0065f;
 			public int UpdateOrder => 100;
+
+			public float smoothing = 0.02f;
 
 			public void CollectDeviceInfos(DataTreeList list)
 			{
@@ -77,6 +80,21 @@ namespace NeosVarjoEye
 				// But giving it its own thread messes around with things for some reason. So here it lies
 				VarjoTrackingModule.tracker.Update();
 
+				var leftPupil = (float)(gazeData.leftPupilSize * userPupilDiameter);
+				var rightPupil = (float)(gazeData.leftPupilSize * userPupilDiameter);
+
+				var leftOpen =
+					gazeData.leftStatus == GazeEyeStatus.Tracked ? 1f : (
+					gazeData.leftStatus == GazeEyeStatus.Compensated ? 0.5f : (
+					gazeData.leftStatus == GazeEyeStatus.Visible ? 0.25f
+					: 0f)); // GazeEyeStatus.Invalid
+
+				var rightOpen =
+					gazeData.rightStatus == GazeEyeStatus.Tracked ? 1f : (
+					gazeData.rightStatus == GazeEyeStatus.Compensated ? 0.5f : (
+					gazeData.rightStatus == GazeEyeStatus.Visible ? 0.25f
+					: 0f)); // GazeEyeStatus.Invalid
+
 				eyes.IsEyeTrackingActive = Engine.Current.InputInterface.VR_Active;
 
 				eyes.LeftEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
@@ -89,9 +107,8 @@ namespace NeosVarjoEye
 														gazeData.leftEye.origin.y,
 														gazeData.leftEye.origin.z);
 
-				eyes.LeftEye.PupilDiameter = (float)(gazeData.leftPupilSize * userPupilDiameter);
-
-				eyes.LeftEye.Openness = gazeData.leftStatus == GazeEyeStatus.Invalid ? 0f : 1f; 
+				eyes.LeftEye.PupilDiameter = leftPupil;
+				eyes.LeftEye.Openness = MathX.SmoothLerp(eyes.LeftEye.Openness, leftOpen, ref smoothing, deltaTime);
 				eyes.LeftEye.Widen = (float)MathX.Clamp01(gazeData.leftEye.forward.y);
 				eyes.LeftEye.Squeeze = 0f;
 				eyes.LeftEye.Frown = 0f;
@@ -106,9 +123,8 @@ namespace NeosVarjoEye
 														gazeData.rightEye.origin.y,
 														gazeData.rightEye.origin.z);
 
-				eyes.RightEye.PupilDiameter = (float)(gazeData.leftPupilSize * userPupilDiameter);
-
-				eyes.RightEye.Openness = gazeData.rightStatus == GazeEyeStatus.Invalid ? 0f : 1f;
+				eyes.RightEye.PupilDiameter = rightPupil;
+				eyes.RightEye.Openness = MathX.SmoothLerp(eyes.RightEye.Openness, rightOpen, ref smoothing, deltaTime);
 				eyes.RightEye.Widen = (float)MathX.Clamp01(gazeData.rightEye.forward.y);
 				eyes.RightEye.Squeeze = 0f;
 				eyes.RightEye.Frown = 0f;
@@ -121,26 +137,22 @@ namespace NeosVarjoEye
 				eyes.CombinedEye.RawPosition = (float3)new double3(gazeData.gaze.origin.x,
 														gazeData.gaze.origin.y,
 														gazeData.gaze.origin.z);
-
-				eyes.CombinedEye.PupilDiameter = MathX.Average((float)(gazeData.leftPupilSize * userPupilDiameter),
-						(float)(gazeData.rightPupilSize * userPupilDiameter));
-
-				eyes.CombinedEye.Openness = gazeData.leftStatus == GazeEyeStatus.Invalid ||
-					gazeData.rightStatus == GazeEyeStatus.Invalid ? 0f : 1f;
+				eyes.CombinedEye.PupilDiameter = MathX.Average(leftPupil, rightPupil);
+				eyes.CombinedEye.Openness = MathX.SmoothLerp(MathX.Average(leftOpen, rightOpen), eyes.CombinedEye.Openness, ref smoothing, deltaTime);
 				eyes.CombinedEye.Widen = (float)MathX.Clamp01(gazeData.gaze.forward.y);
 				eyes.CombinedEye.Squeeze = 0f;
 				eyes.CombinedEye.Frown = 0f;
 
 				// Yes, I am aware convergence distance and focus distance are NOT the same thing.
-				// But we ought to get it in somehow. Close enough for a mod anyways!
+				// But we ought to get it in somehow.
 				if (gazeData.stability > 0.75) {
 					eyes.ConvergenceDistance = (float) gazeData.focusDistance;
 				}
 
 				/*
-				* Yeah, gazeData.captureTime is wonky. I get it's in nanoseconds, but it straight up does *NOT* want to work. gazeData.frameNumber it is! 
-				* Oh, and because we can't specify a mod config to account for refresh rate (funny enum) we'll hardcode a value to divide it by!
-				* I mean, you don't need 100hz+ sampling in a networked social context anyways, right?!
+				* Yeah, gazeData.captureTime is wonky. gazeData.frameNumber it is! 
+				* We need a hardcoded value to divide it by bc mod config go brr
+				* I mean, you don't need 100hz+ sampling in a networked social context anyways, right? Right!
 				*/
 
 				eyes.Timestamp = gazeData.frameNumber / 100;
