@@ -59,6 +59,11 @@ namespace NeosVarjoEye
 			public int UpdateOrder => 100;
 
 			public float smoothing = 0.1f;
+			public float speed = 4.0f;
+
+			private float _leftOpen = 1.0f;
+			private float _rightOpen = 1.0f;
+			private float _combinedOpen = 1.0f;
 
 			public void CollectDeviceInfos(DataTreeList list)
 			{
@@ -89,11 +94,15 @@ namespace NeosVarjoEye
 					gazeData.leftStatus == GazeEyeStatus.Visible ? 0.25f
 					: 0f)); // GazeEyeStatus.Invalid
 
+				_leftOpen = MathX.Lerp(_leftOpen, leftOpen, deltaTime * speed);
+
 				var rightOpen =
 					gazeData.rightStatus == GazeEyeStatus.Tracked ? 1f : (
 					gazeData.rightStatus == GazeEyeStatus.Compensated ? 0.5f : (
 					gazeData.rightStatus == GazeEyeStatus.Visible ? 0.25f
 					: 0f)); // GazeEyeStatus.Invalid
+
+				_rightOpen = MathX.Lerp(_rightOpen, rightOpen, deltaTime * speed);
 
 				bool leftStatus = gazeData.leftStatus == GazeEyeStatus.Compensated ||
 				                  gazeData.leftStatus == GazeEyeStatus.Tracked;
@@ -102,13 +111,16 @@ namespace NeosVarjoEye
 
 				eyes.IsEyeTrackingActive = Engine.Current.InputInterface.VR_Active;
 				
-				UpdateEye(in gazeData.leftEye, in leftStatus, in leftPupil, leftOpen, deltaTime, eyes.LeftEye);
-				UpdateEye(in gazeData.rightEye, in rightStatus, in rightPupil, rightOpen, deltaTime, eyes.RightEye);
+				UpdateEye(in gazeData.leftEye, in leftStatus, in leftPupil, _leftOpen, deltaTime, eyes.LeftEye);
+				UpdateEye(in gazeData.rightEye, in rightStatus, in rightPupil, _rightOpen, deltaTime, eyes.RightEye);
 				
 				bool combinedStatus = gazeData.status == GazeStatus.Valid;
 				float combinedPupil = MathX.Average(leftPupil, rightPupil);
 				float combinedOpen = MathX.Average(leftOpen, rightOpen);
-				UpdateEye(in gazeData.gaze, in combinedStatus, in combinedPupil, combinedOpen, deltaTime, eyes.CombinedEye);
+
+				_combinedOpen = MathX.Lerp(_combinedOpen, combinedOpen, deltaTime * speed);
+				
+				UpdateEye(in gazeData.gaze, in combinedStatus, in combinedPupil, _combinedOpen, deltaTime, eyes.CombinedEye);
 
 				eyes.ComputeCombinedEyeParameters();
 
@@ -147,7 +159,7 @@ namespace NeosVarjoEye
 					eye.PupilDiameter = pupilSize;
 				}
 
-				eye.Openness = MathX.SmoothLerp(eye.Openness, openness, ref smoothing, deltaTime);
+				eye.Openness = openness;
 				eye.Widen = (float)MathX.Clamp01(data.forward.y);
 				eye.Squeeze = 0f;
 				eye.Frown = 0f;
