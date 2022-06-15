@@ -61,7 +61,13 @@ namespace NeosVarjoEye
 				public float userPupilScale = 0.001f;
 				public float blinkSpeed = 10.0f;
 				public bool blinkDetection = true;
+				public float middleStateSpeedMultiplier = 0.025f;
 				public float blinkDetectionMultiplier = 2.0f;
+
+				public float fullOpenState = 1.0f;
+				public float halfOpenState = 0.5f;
+				public float quarterOpenState = 0.25f;
+				public float closedState = 0.0f;
 			}
 
 			public Settings eyeTrackingSettings = new Settings();
@@ -121,22 +127,26 @@ namespace NeosVarjoEye
 				var rightPupil = (float)(gazeData.leftPupilSize * eyeTrackingSettings.userPupilScale);
 
 				var leftOpen =
-					gazeData.leftStatus == GazeEyeStatus.Tracked ? 1f : (
-					gazeData.leftStatus == GazeEyeStatus.Compensated ? 0.5f : (
-					gazeData.leftStatus == GazeEyeStatus.Visible ? 0.25f
-					: 0f)); // GazeEyeStatus.Invalid
+					gazeData.leftStatus == GazeEyeStatus.Tracked ? eyeTrackingSettings.fullOpenState : (
+					gazeData.leftStatus == GazeEyeStatus.Compensated ? eyeTrackingSettings.halfOpenState : (
+					gazeData.leftStatus == GazeEyeStatus.Visible ? eyeTrackingSettings.quarterOpenState
+					: eyeTrackingSettings.closedState)); // GazeEyeStatus.Invalid
 
 				var rightOpen =
-					gazeData.rightStatus == GazeEyeStatus.Tracked ? 1f : (
-					gazeData.rightStatus == GazeEyeStatus.Compensated ? 0.5f : (
-					gazeData.rightStatus == GazeEyeStatus.Visible ? 0.25f
-					: 0f)); // GazeEyeStatus.Invalid
+					gazeData.rightStatus == GazeEyeStatus.Tracked ? eyeTrackingSettings.fullOpenState : (
+					gazeData.rightStatus == GazeEyeStatus.Compensated ? eyeTrackingSettings.halfOpenState : (
+					gazeData.rightStatus == GazeEyeStatus.Visible ? eyeTrackingSettings.quarterOpenState
+					: eyeTrackingSettings.closedState)); // GazeEyeStatus.Invalid
 				
 				if (eyeTrackingSettings.blinkDetection)
 				{
 					if (_previouslyClosedLeft == true && gazeData.leftStatus == GazeEyeStatus.Invalid)
 					{
-						_leftEyeBlinkMultiplier += eyeTrackingSettings.blinkDetectionMultiplier * deltaTime;
+						_leftEyeBlinkMultiplier += eyeTrackingSettings.blinkDetectionMultiplier;
+					}
+					else if (gazeData.leftStatus == GazeEyeStatus.Compensated || gazeData.leftStatus == GazeEyeStatus.Visible)
+					{
+						_leftEyeBlinkMultiplier *= eyeTrackingSettings.middleStateSpeedMultiplier;
 					}
 					else
 					{
@@ -145,7 +155,11 @@ namespace NeosVarjoEye
 
 					if (_previouslyClosedRight == true && gazeData.rightStatus == GazeEyeStatus.Invalid)
 					{
-						_rightEyeBlinkMultiplier += eyeTrackingSettings.blinkDetectionMultiplier * deltaTime;
+						_rightEyeBlinkMultiplier += eyeTrackingSettings.blinkDetectionMultiplier;
+					}
+					else if (gazeData.rightStatus == GazeEyeStatus.Compensated || gazeData.rightStatus == GazeEyeStatus.Visible)
+					{
+						_leftEyeBlinkMultiplier *= eyeTrackingSettings.middleStateSpeedMultiplier;
 					}
 					else
 					{
@@ -161,9 +175,12 @@ namespace NeosVarjoEye
 				_rightOpen = MathX.Lerp(_rightOpen, rightOpen, deltaTime * eyeTrackingSettings.blinkSpeed * _rightEyeBlinkMultiplier);
 
 				bool leftStatus = gazeData.leftStatus == GazeEyeStatus.Compensated ||
-				                  gazeData.leftStatus == GazeEyeStatus.Tracked;
+				                  gazeData.leftStatus == GazeEyeStatus.Tracked ||
+				                  gazeData.leftStatus == GazeEyeStatus.Visible;
+				
 				bool rightStatus = gazeData.rightStatus == GazeEyeStatus.Compensated ||
-				                   gazeData.rightStatus == GazeEyeStatus.Tracked;
+				                   gazeData.rightStatus == GazeEyeStatus.Tracked ||
+				                   gazeData.rightStatus == GazeEyeStatus.Visible;
 
 				eyes.IsEyeTrackingActive = Engine.Current.InputInterface.VR_Active;
 				
