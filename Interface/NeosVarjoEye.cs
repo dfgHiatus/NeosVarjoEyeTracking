@@ -3,6 +3,8 @@ using NeosModLoader;
 using FrooxEngine;
 using BaseX;
 using System;
+using Newtonsoft.Json;
+using System.IO;
 
 namespace NeosVarjoEye
 {
@@ -53,17 +55,39 @@ namespace NeosVarjoEye
 
 		public class GenericInputDevice : IInputDriver
 		{
+			[Serializable]
+			public class Settings
+			{
+				public float userPupilScale = 0.001f;
+				public float blinkSpeed = 10.0f;
+			}
+
+			public Settings eyeTrackingSettings = new Settings();
+			
 			public Eyes eyes;
-
-			public float userPupilDiameter = 0.001f;
+			
 			public int UpdateOrder => 100;
-
-			public float smoothing = 0.1f;
-			public float speed = 4.0f;
 
 			private float _leftOpen = 1.0f;
 			private float _rightOpen = 1.0f;
 			private float _combinedOpen = 1.0f;
+
+			private const string EYETRACKING_CONFIG_FILE = "nml_config/varjo.neos.eyetracking.json";
+
+			public GenericInputDevice()
+			{
+				// Check if our config file is present.
+
+				if (File.Exists(EYETRACKING_CONFIG_FILE))
+				{
+					eyeTrackingSettings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(EYETRACKING_CONFIG_FILE));
+				}
+				else
+				{
+					// Create the file, populated it with some defaults.
+					File.WriteAllText(EYETRACKING_CONFIG_FILE, JsonConvert.SerializeObject(eyeTrackingSettings));
+				}
+			}
 
 			public void CollectDeviceInfos(DataTreeList list)
 			{
@@ -85,8 +109,8 @@ namespace NeosVarjoEye
 				// But giving it its own thread messes around with things for some reason. So here it lies
 				VarjoTrackingModule.tracker.Update();
 
-				var leftPupil = (float)(gazeData.leftPupilSize * userPupilDiameter);
-				var rightPupil = (float)(gazeData.leftPupilSize * userPupilDiameter);
+				var leftPupil = (float)(gazeData.leftPupilSize * eyeTrackingSettings.userPupilScale);
+				var rightPupil = (float)(gazeData.leftPupilSize * eyeTrackingSettings.userPupilScale);
 
 				var leftOpen =
 					gazeData.leftStatus == GazeEyeStatus.Tracked ? 1f : (
@@ -94,7 +118,7 @@ namespace NeosVarjoEye
 					gazeData.leftStatus == GazeEyeStatus.Visible ? 0.25f
 					: 0f)); // GazeEyeStatus.Invalid
 
-				_leftOpen = MathX.Lerp(_leftOpen, leftOpen, deltaTime * speed);
+				_leftOpen = MathX.Lerp(_leftOpen, leftOpen, deltaTime * eyeTrackingSettings.blinkSpeed);
 
 				var rightOpen =
 					gazeData.rightStatus == GazeEyeStatus.Tracked ? 1f : (
@@ -102,7 +126,7 @@ namespace NeosVarjoEye
 					gazeData.rightStatus == GazeEyeStatus.Visible ? 0.25f
 					: 0f)); // GazeEyeStatus.Invalid
 
-				_rightOpen = MathX.Lerp(_rightOpen, rightOpen, deltaTime * speed);
+				_rightOpen = MathX.Lerp(_rightOpen, rightOpen, deltaTime * eyeTrackingSettings.blinkSpeed);
 
 				bool leftStatus = gazeData.leftStatus == GazeEyeStatus.Compensated ||
 				                  gazeData.leftStatus == GazeEyeStatus.Tracked;
@@ -118,7 +142,7 @@ namespace NeosVarjoEye
 				float combinedPupil = MathX.Average(leftPupil, rightPupil);
 				float combinedOpen = MathX.Average(leftOpen, rightOpen);
 
-				_combinedOpen = MathX.Lerp(_combinedOpen, combinedOpen, deltaTime * speed);
+				_combinedOpen = MathX.Lerp(_combinedOpen, combinedOpen, deltaTime * eyeTrackingSettings.blinkSpeed);
 				
 				UpdateEye(in gazeData.gaze, in combinedStatus, in combinedPupil, _combinedOpen, deltaTime, eyes.CombinedEye);
 
