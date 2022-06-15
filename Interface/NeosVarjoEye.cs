@@ -147,6 +147,7 @@ namespace NeosVarjoEye
 					else if (gazeData.leftStatus == GazeEyeStatus.Compensated || gazeData.leftStatus == GazeEyeStatus.Visible)
 					{
 						_leftEyeBlinkMultiplier *= eyeTrackingSettings.middleStateSpeedMultiplier;
+						_leftEyeBlinkMultiplier = MathX.Max(1.0f, _leftEyeBlinkMultiplier);
 					}
 					else
 					{
@@ -159,7 +160,8 @@ namespace NeosVarjoEye
 					}
 					else if (gazeData.rightStatus == GazeEyeStatus.Compensated || gazeData.rightStatus == GazeEyeStatus.Visible)
 					{
-						_leftEyeBlinkMultiplier *= eyeTrackingSettings.middleStateSpeedMultiplier;
+						_rightEyeBlinkMultiplier *= eyeTrackingSettings.middleStateSpeedMultiplier;
+						_rightEyeBlinkMultiplier = MathX.Max(1.0f, _rightEyeBlinkMultiplier);
 					}
 					else
 					{
