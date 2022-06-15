@@ -64,6 +64,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(TargetDir)\$(TargetFileName)" "I:\SteamLibrary\steamapps\common\NeosVR\nml_mods"</PostBuildEvent>
+    <PostBuildEvent>copy "$(TargetDir)\$(TargetFileName)" "C:\Neos\app\nml_mods"</PostBuildEvent>
   </PropertyGroup>
 </Project>

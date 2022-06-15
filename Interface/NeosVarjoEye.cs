@@ -55,10 +55,10 @@ namespace NeosVarjoEye
 		{
 			public Eyes eyes;
 
-			public float userPupilDiameter = 0.0065f;
+			public float userPupilDiameter = 0.001f;
 			public int UpdateOrder => 100;
 
-			public float smoothing = 0.02f;
+			public float smoothing = 0.1f;
 
 			public void CollectDeviceInfos(DataTreeList list)
 			{
@@ -95,53 +95,22 @@ namespace NeosVarjoEye
 					gazeData.rightStatus == GazeEyeStatus.Visible ? 0.25f
 					: 0f)); // GazeEyeStatus.Invalid
 
+				bool leftStatus = gazeData.leftStatus == GazeEyeStatus.Compensated ||
+				                  gazeData.leftStatus == GazeEyeStatus.Tracked;
+				bool rightStatus = gazeData.rightStatus == GazeEyeStatus.Compensated ||
+				                   gazeData.rightStatus == GazeEyeStatus.Tracked;
+
 				eyes.IsEyeTrackingActive = Engine.Current.InputInterface.VR_Active;
+				
+				UpdateEye(in gazeData.leftEye, in leftStatus, in leftPupil, leftOpen, deltaTime, eyes.LeftEye);
+				UpdateEye(in gazeData.rightEye, in rightStatus, in rightPupil, rightOpen, deltaTime, eyes.RightEye);
+				
+				bool combinedStatus = gazeData.status == GazeStatus.Valid;
+				float combinedPupil = MathX.Average(leftPupil, rightPupil);
+				float combinedOpen = MathX.Average(leftOpen, rightOpen);
+				UpdateEye(in gazeData.gaze, in combinedStatus, in combinedPupil, combinedOpen, deltaTime, eyes.CombinedEye);
 
-				eyes.LeftEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
-				eyes.LeftEye.IsTracking = gazeData.leftStatus == GazeEyeStatus.Compensated ||
-					gazeData.leftStatus == GazeEyeStatus.Tracked;
-				eyes.LeftEye.Direction = (float3)new double3(gazeData.leftEye.forward.x,
-														gazeData.leftEye.forward.y,
-														gazeData.leftEye.forward.z);
-				eyes.LeftEye.RawPosition = (float3)new double3(gazeData.leftEye.origin.x,
-														gazeData.leftEye.origin.y,
-														gazeData.leftEye.origin.z);
-
-				eyes.LeftEye.PupilDiameter = leftPupil;
-				eyes.LeftEye.Openness = MathX.SmoothLerp(eyes.LeftEye.Openness, leftOpen, ref smoothing, deltaTime);
-				eyes.LeftEye.Widen = (float)MathX.Clamp01(gazeData.leftEye.forward.y);
-				eyes.LeftEye.Squeeze = 0f;
-				eyes.LeftEye.Frown = 0f;
-
-				eyes.RightEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
-				eyes.RightEye.IsTracking = gazeData.rightStatus == GazeEyeStatus.Compensated ||
-					gazeData.rightStatus == GazeEyeStatus.Tracked;
-				eyes.RightEye.Direction = (float3)new double3(gazeData.rightEye.forward.x,
-														gazeData.rightEye.forward.y,
-														gazeData.rightEye.forward.z);
-				eyes.RightEye.RawPosition = (float3)new double3(gazeData.rightEye.origin.x,
-														gazeData.rightEye.origin.y,
-														gazeData.rightEye.origin.z);
-
-				eyes.RightEye.PupilDiameter = rightPupil;
-				eyes.RightEye.Openness = MathX.SmoothLerp(eyes.RightEye.Openness, rightOpen, ref smoothing, deltaTime);
-				eyes.RightEye.Widen = (float)MathX.Clamp01(gazeData.rightEye.forward.y);
-				eyes.RightEye.Squeeze = 0f;
-				eyes.RightEye.Frown = 0f;
-
-				eyes.CombinedEye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
-				eyes.CombinedEye.IsTracking = gazeData.status == GazeStatus.Valid;
-				eyes.CombinedEye.Direction = (float3)new double3(gazeData.gaze.forward.x,
-														gazeData.gaze.forward.y,
-														gazeData.gaze.forward.z);
-				eyes.CombinedEye.RawPosition = (float3)new double3(gazeData.gaze.origin.x,
-														gazeData.gaze.origin.y,
-														gazeData.gaze.origin.z);
-				eyes.CombinedEye.PupilDiameter = MathX.Average(leftPupil, rightPupil);
-				eyes.CombinedEye.Openness = MathX.SmoothLerp(MathX.Average(leftOpen, rightOpen), eyes.CombinedEye.Openness, ref smoothing, deltaTime);
-				eyes.CombinedEye.Widen = (float)MathX.Clamp01(gazeData.gaze.forward.y);
-				eyes.CombinedEye.Squeeze = 0f;
-				eyes.CombinedEye.Frown = 0f;
+				eyes.ComputeCombinedEyeParameters();
 
 				// Yes, I am aware convergence distance and focus distance are NOT the same thing.
 				// But we ought to get it in somehow.
@@ -156,6 +125,32 @@ namespace NeosVarjoEye
 				*/
 
 				eyes.Timestamp = gazeData.frameNumber / 100;
+				
+				eyes.FinishUpdate();
+			}
+
+			void UpdateEye(in GazeRay data, in bool status, in float pupilSize, in float openness, in float deltaTime, Eye eye)
+			{
+				eye.IsDeviceActive = Engine.Current.InputInterface.VR_Active;
+				eye.IsTracking = status;
+
+				if (eye.IsTracking)
+				{
+					eye.UpdateWithDirection((float3)new double3(data.forward.x,
+						data.forward.y,
+						data.forward.z).Normalized);
+					
+					eye.RawPosition = (float3)new double3(data.origin.x,
+						data.origin.y,
+						data.origin.z);
+					
+					eye.PupilDiameter = pupilSize;
+				}
+
+				eye.Openness = MathX.SmoothLerp(eye.Openness, openness, ref smoothing, deltaTime);
+				eye.Widen = (float)MathX.Clamp01(data.forward.y);
+				eye.Squeeze = 0f;
+				eye.Frown = 0f;
 			}
 		}
 	}
