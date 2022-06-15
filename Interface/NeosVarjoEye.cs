@@ -60,6 +60,8 @@ namespace NeosVarjoEye
 			{
 				public float userPupilScale = 0.001f;
 				public float blinkSpeed = 10.0f;
+				public bool blinkDetection = true;
+				public float blinkDetectionMultiplier = 2.0f;
 			}
 
 			public Settings eyeTrackingSettings = new Settings();
@@ -71,6 +73,12 @@ namespace NeosVarjoEye
 			private float _leftOpen = 1.0f;
 			private float _rightOpen = 1.0f;
 			private float _combinedOpen = 1.0f;
+			
+			private bool _previouslyClosedRight = false;
+			private bool _previouslyClosedLeft = false;
+
+			private float _leftEyeBlinkMultiplier = 1.0f;
+			private float _rightEyeBlinkMultiplier = 1.0f;
 
 			private const string EYETRACKING_CONFIG_FILE = "nml_config/varjo.neos.eyetracking.json";
 
@@ -118,15 +126,39 @@ namespace NeosVarjoEye
 					gazeData.leftStatus == GazeEyeStatus.Visible ? 0.25f
 					: 0f)); // GazeEyeStatus.Invalid
 
-				_leftOpen = MathX.Lerp(_leftOpen, leftOpen, deltaTime * eyeTrackingSettings.blinkSpeed);
-
 				var rightOpen =
 					gazeData.rightStatus == GazeEyeStatus.Tracked ? 1f : (
 					gazeData.rightStatus == GazeEyeStatus.Compensated ? 0.5f : (
 					gazeData.rightStatus == GazeEyeStatus.Visible ? 0.25f
 					: 0f)); // GazeEyeStatus.Invalid
+				
+				if (eyeTrackingSettings.blinkDetection)
+				{
+					if (_previouslyClosedLeft == true && gazeData.leftStatus == GazeEyeStatus.Invalid)
+					{
+						_leftEyeBlinkMultiplier += eyeTrackingSettings.blinkDetectionMultiplier * deltaTime;
+					}
+					else
+					{
+						_leftEyeBlinkMultiplier = 1.0f;
+					}
 
-				_rightOpen = MathX.Lerp(_rightOpen, rightOpen, deltaTime * eyeTrackingSettings.blinkSpeed);
+					if (_previouslyClosedRight == true && gazeData.rightStatus == GazeEyeStatus.Invalid)
+					{
+						_rightEyeBlinkMultiplier += eyeTrackingSettings.blinkDetectionMultiplier * deltaTime;
+					}
+					else
+					{
+						_rightEyeBlinkMultiplier = 1.0f;
+					}
+
+					_previouslyClosedLeft = gazeData.leftStatus == GazeEyeStatus.Invalid;
+					_previouslyClosedRight = gazeData.rightStatus == GazeEyeStatus.Invalid;
+				}
+				
+				_leftOpen = MathX.Lerp(_leftOpen, leftOpen, deltaTime * eyeTrackingSettings.blinkSpeed * _leftEyeBlinkMultiplier);
+
+				_rightOpen = MathX.Lerp(_rightOpen, rightOpen, deltaTime * eyeTrackingSettings.blinkSpeed * _rightEyeBlinkMultiplier);
 
 				bool leftStatus = gazeData.leftStatus == GazeEyeStatus.Compensated ||
 				                  gazeData.leftStatus == GazeEyeStatus.Tracked;
