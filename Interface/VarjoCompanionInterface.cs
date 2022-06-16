@@ -55,16 +55,16 @@ namespace VarjoInterface.Companion
         public override void Update()
         {
             if (MemMapFile == null) return;
-            ViewAccessor.Read(0, out gazeData);
+            ViewAccessor.Read(0, out varjoData);
         }
 
         public override void Teardown()
         {
             if (MemMapFile == null) return;
-            ViewAccessor.Write(0, ref gazeData);
+            ViewAccessor.Write(0, ref varjoData);
             MemMapFile.Dispose();
             CompanionProcess.Close();
-            // CompanionProcess.Kill() might be better suited here;
+            // CompanionProcess.Kill(); might be better suited here
         }
 
         public override string GetName()

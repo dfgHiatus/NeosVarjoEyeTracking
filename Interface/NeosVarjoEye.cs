@@ -11,14 +11,20 @@ namespace NeosVarjoEye
 {
 	public class NeosVarjoEye : NeosMod
 	{
-		[AutoRegisterConfigKey]
-		public static ModConfigurationKey<bool> usingCompanion = new ModConfigurationKey<bool>("using_companion", "Use the Varjo Companion app (requires restart)", () => true);
+		/*[AutoRegisterConfigKey]
+		public static ModConfigurationKey<bool> usingCompanion = new ModConfigurationKey<bool>("using_companion", "Use the Varjo Companion app (requires restart)", () => true);*/
 
 		[AutoRegisterConfigKey]
-		public static ModConfigurationKey<bool> blinkDetection = new ModConfigurationKey<bool>("using_companion", "Use Blink Smoothing", () => true);
+		public static ModConfigurationKey<float> coffeeKey = new ModConfigurationKey<float>("coffeeKey", "coffeeKey", () => 1f);
 
 		[AutoRegisterConfigKey]
-		public static ModConfigurationKey<float> userPupilScale = new ModConfigurationKey<float>("blink_Speed", "Pupil Dilation Scale. Used to correct Varjo Companion readings", () => 0.001f);
+		public static ModConfigurationKey<bool> blinkDetection = new ModConfigurationKey<bool>("using_blink_smoothing", "Use Blink Smoothing", () => true);
+
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<bool> useLegacyPupilDilation = new ModConfigurationKey<bool>("use_Legacy_Pupil_Dilation", "Use Legacy Pupil Dilation", () => false);
+
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<float> userPupilScale = new ModConfigurationKey<float>("pupil_Dilaiton_Scale", "Pupil Dilation Scale. Used to correct Varjo Companion readings", () => 0.001f);
 
 		[AutoRegisterConfigKey]
 		public static ModConfigurationKey<float> blinkSpeed = new ModConfigurationKey<float>("blink_Speed", "Blink Speed", () => 10.0f);
@@ -54,7 +60,6 @@ namespace NeosVarjoEye
 		}
 
 		private static VarjoModule tracker;
-		private static bool isCompanion;
 
 		[HarmonyPatch(typeof(InputInterface), MethodType.Constructor)]
 		[HarmonyPatch(new Type[] { typeof(Engine) })]
@@ -64,17 +69,10 @@ namespace NeosVarjoEye
 			{
 				try
 				{
-					if (config.GetValue(usingCompanion))
-					{
-						tracker = new VarjoCompanionInterface();
-					}
-					else
-					{
-						tracker = new VarjoNativeInterface();
-					}
+					tracker = new VarjoCompanionInterface();
 					Debug(string.Format("Initializing {0} Varjo module", tracker.GetName()));
 					bool pipeConnected = tracker.Initialize();
-					isCompanion = config.GetValue(usingCompanion);
+					// isCompanion = config.GetValue(usingCompanion);
 					GenericInputDevice genericInputDevice = new GenericInputDevice();
 					__instance.RegisterInputDriver(genericInputDevice);
 				}
@@ -112,7 +110,7 @@ namespace NeosVarjoEye
 			private float _leftEyeBlinkMultiplier = 1.0f;
 			private float _rightEyeBlinkMultiplier = 1.0f;
 
-			private const string EYETRACKING_CONFIG_FILE = "nml_config/varjo.neos.eyetracking.json";
+			// private const string EYETRACKING_CONFIG_FILE = "nml_config/varjo.neos.eyetracking.json";
 
 			public void CollectDeviceInfos(DataTreeList list)
 			{
@@ -136,12 +134,12 @@ namespace NeosVarjoEye
 				var gazeData = tracker.GetGazeData();
 				var eyeData = tracker.GetEyeMeasurements();
 
-				var leftPupil = isCompanion ?
+				var leftPupil = config.GetValue(useLegacyPupilDilation) ?
 					(float)(gazeData.leftPupilSize * config.GetValue(userPupilScale)) :
-					eyeData.rightPupilDiameterInMM;
-				var rightPupil = isCompanion ?
+					eyeData.rightPupilDiameterInMM / config.GetValue(coffeeKey);
+				var rightPupil = config.GetValue(useLegacyPupilDilation) ?
 					(float)(gazeData.leftPupilSize * config.GetValue(userPupilScale)) :
-					eyeData.leftPupilDiameterInMM;
+					eyeData.leftPupilDiameterInMM / config.GetValue(coffeeKey); ;
 
 				var leftOpen =
 					gazeData.leftStatus == GazeEyeStatus.Tracked ? config.GetValue(fullOpenState) : (
@@ -225,7 +223,6 @@ namespace NeosVarjoEye
 				* Yeah, gazeData.captureTime is wonky. gazeData.frameNumber it is! 
 				* You don't need 100hz+ sampling in a networked social context anyways, right?
 				*/
-
 				eyes.Timestamp = gazeData.frameNumber / 100;
 				
 				eyes.FinishUpdate();

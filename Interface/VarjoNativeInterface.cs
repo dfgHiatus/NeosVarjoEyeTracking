@@ -47,7 +47,7 @@ namespace VarjoInterface.Native
 
             // Get's GazeData and EyeMeasurements from the Varjo SDK
             // Return value states whether or not the request was successful (true = has Data; false = Error occured)
-            bool hasData = varjo_GetGazeData(_session, out gazeData, out eyeMeasurements);
+            bool hasData = varjo_GetGazeData(_session, out varjoData.gazeData, out varjoData.eyeData);
 
             if (!hasData)
                 UniLog.Log("Error while getting Gaze Data");

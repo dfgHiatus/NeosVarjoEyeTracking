@@ -8,7 +8,14 @@ using System.Threading.Tasks;
 
 namespace VarjoInterface
 {
-    //Varjo's structs used with both native library and companion
+    // Varjo's structs used with both native library and companion
+    [StructLayout(LayoutKind.Sequential)]
+    public struct VarjoData
+    {
+        public GazeData gazeData;
+        public EyeMeasurements eyeData;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct Vector
     {
@@ -118,17 +125,16 @@ namespace VarjoInterface
 
     public abstract class VarjoModule
     {
-        protected GazeData gazeData;
-        protected EyeMeasurements eyeMeasurements;
+        protected VarjoData varjoData;
 
         public GazeData GetGazeData()
         {
-            return gazeData;
+            return varjoData.gazeData;
         }
 
         public EyeMeasurements GetEyeMeasurements()
         {
-            return eyeMeasurements;
+            return varjoData.eyeData;
         }
 
         public abstract void Teardown();
@@ -144,6 +150,4 @@ namespace VarjoInterface
         }
 
     }
-
-
 }
