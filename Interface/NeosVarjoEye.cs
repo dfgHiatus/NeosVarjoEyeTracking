@@ -15,16 +15,13 @@ namespace NeosVarjoEye
 		public static ModConfigurationKey<bool> usingCompanion = new ModConfigurationKey<bool>("using_companion", "Use the Varjo Companion app (requires restart)", () => true);*/
 
 		[AutoRegisterConfigKey]
-		public static ModConfigurationKey<float> coffeeKey = new ModConfigurationKey<float>("coffeeKey", "coffeeKey", () => 1f);
-
-		[AutoRegisterConfigKey]
 		public static ModConfigurationKey<bool> blinkDetection = new ModConfigurationKey<bool>("using_blink_smoothing", "Use Blink Smoothing", () => true);
 
 		[AutoRegisterConfigKey]
 		public static ModConfigurationKey<bool> useLegacyPupilDilation = new ModConfigurationKey<bool>("use_Legacy_Pupil_Dilation", "Use Legacy Pupil Dilation", () => false);
 
 		[AutoRegisterConfigKey]
-		public static ModConfigurationKey<float> userPupilScale = new ModConfigurationKey<float>("pupil_Dilaiton_Scale", "Pupil Dilation Scale. Used to correct Varjo Companion readings", () => 0.001f);
+		public static ModConfigurationKey<float> userPupilScale = new ModConfigurationKey<float>("pupil_Dilaiton_Scale", "Pupil Dilation Scale. Used to correct legacy Varjo Companion readings", () => 0.008f);
 
 		[AutoRegisterConfigKey]
 		public static ModConfigurationKey<float> blinkSpeed = new ModConfigurationKey<float>("blink_Speed", "Blink Speed", () => 10.0f);
@@ -136,10 +133,10 @@ namespace NeosVarjoEye
 
 				var leftPupil = config.GetValue(useLegacyPupilDilation) ?
 					(float)(gazeData.leftPupilSize * config.GetValue(userPupilScale)) :
-					eyeData.rightPupilDiameterInMM / config.GetValue(coffeeKey);
+					eyeData.rightPupilDiameterInMM * 0.001f;
 				var rightPupil = config.GetValue(useLegacyPupilDilation) ?
 					(float)(gazeData.leftPupilSize * config.GetValue(userPupilScale)) :
-					eyeData.leftPupilDiameterInMM / config.GetValue(coffeeKey); ;
+					eyeData.leftPupilDiameterInMM * 0.001f; // Dividing by 1000 doesn't want to work here
 
 				var leftOpen =
 					gazeData.leftStatus == GazeEyeStatus.Tracked ? config.GetValue(fullOpenState) : (
