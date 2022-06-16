@@ -40,7 +40,7 @@
     </Reference>
     <Reference Include="BaseX, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>I:\SteamLibrary\steamapps\common\NeosVR\Neos_Data\Managed\BaseX.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\NeosVR\Neos_Data\Managed\BaseX.dll</HintPath>
     </Reference>
     <Reference Include="FrooxEngine, Version=2022.1.28.1335, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -51,10 +51,10 @@
       <HintPath>I:\SteamLibrary\steamapps\common\NeosVR\Libraries\NeosModLoader.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>C:\Neos\app\Neos_Data\Managed\Newtonsoft.Json.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\NeosVR\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json.Bson">
-      <HintPath>C:\Neos\app\Neos_Data\Managed\Newtonsoft.Json.Bson.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\NeosVR\Newtonsoft.Json.Bson.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Numerics" />
@@ -63,13 +63,14 @@
     <Compile Include="NeosVarjoEye.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VarjoCompanionInterface.cs" />
-    <Compile Include="VarjoTrackingModule.cs" />
+    <Compile Include="VarjoInterface.cs" />
+    <Compile Include="VarjoNativeInterface.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(TargetDir)\$(TargetFileName)" "C:\Neos\app\nml_mods"</PostBuildEvent>
+    <PostBuildEvent>copy "$(TargetDir)\$(TargetFileName)" "C:\Program Files (x86)\Steam\steamapps\common\NeosVR\nml_mods"</PostBuildEvent>
   </PropertyGroup>
 </Project>

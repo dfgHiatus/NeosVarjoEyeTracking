@@ -3,37 +3,80 @@ using NeosModLoader;
 using FrooxEngine;
 using BaseX;
 using System;
-using Newtonsoft.Json;
-using System.IO;
+using VarjoInterface;
+using VarjoInterface.Native;
+using VarjoInterface.Companion;
 
 namespace NeosVarjoEye
 {
 	public class NeosVarjoEye : NeosMod
 	{
-		public static GazeData gazeData;
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<bool> usingCompanion = new ModConfigurationKey<bool>("using_companion", "Use the Varjo Companion app (requires restart)", () => true);
+
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<bool> blinkDetection = new ModConfigurationKey<bool>("using_companion", "Use Blink Smoothing", () => true);
+
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<float> userPupilScale = new ModConfigurationKey<float>("blink_Speed", "Pupil Dilation Scale. Used to correct Varjo Companion readings", () => 0.001f);
+
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<float> blinkSpeed = new ModConfigurationKey<float>("blink_Speed", "Blink Speed", () => 10.0f);
+
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<float> middleStateSpeedMultiplier = new ModConfigurationKey<float>("middle_State_Speed_Multiplier", "Middle State Speed Multiplier", () => 0.025f);
+
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<float> blinkDetectionMultiplier = new ModConfigurationKey<float>("blink_Detection_Multiplier", "Blink Detection Multiplier", () => 2.0f);
+
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<float> fullOpenState = new ModConfigurationKey<float>("full_Open_State", "Fully Open State", () => 1.0f);
+
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<float> halfOpenState = new ModConfigurationKey<float>("half_Open_State", "Half Open State", () => 0.5f);
+
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<float> quarterOpenState = new ModConfigurationKey<float>("quarter_Open_State", "Quarter Open State", () => 0.25f);
+
+		[AutoRegisterConfigKey]
+		public static ModConfigurationKey<float> closedState = new ModConfigurationKey<float>("closed_State", "Eye Closed State", () => 0.0f);
+
+		public static ModConfiguration config;
+
 		public override string Name => "Neos-Varjo-Eye-Integration";
 		public override string Author => "dfgHiatus";
-		public override string Version => "1.0.4";
+		public override string Version => "1.0.6";
 		public override string Link => "https://github.com/dfgHiatus/NeosVarjoEyeTracking";
+		public override void OnEngineInit()
+		{
+			config = GetConfiguration();
+			new Harmony("net.dfgHiatus.NeosVarjoEyeTracking").PatchAll();
+		}
 
-		public override void OnEngineInit() => new Harmony("net.dfgHiatus.NeosVarjoEyeTracking").PatchAll();
+		private static VarjoModule tracker;
+		private static bool isCompanion;
 
 		[HarmonyPatch(typeof(InputInterface), MethodType.Constructor)]
-		[HarmonyPatch(new System.Type[] { typeof(Engine) })]
+		[HarmonyPatch(new Type[] { typeof(Engine) })]
 		public class InputInterfaceCtorPatch
 		{
 			public static void Postfix(InputInterface __instance)
 			{
 				try
 				{
-					if (VarjoTrackingModule.tracker.ConnectToPipe())
+					if (config.GetValue(usingCompanion))
 					{
-						Debug("Gaze tracking enabled for Varjo HMD.");
-						GenericInputDevice genericInputDevice = new GenericInputDevice();
-						__instance.RegisterInputDriver(genericInputDevice);
+						tracker = new VarjoCompanionInterface();
 					}
 					else
-						Warn("Varjo headset isn't detected.");
+					{
+						tracker = new VarjoNativeInterface();
+					}
+					Debug(string.Format("Initializing {0} Varjo module", tracker.GetName()));
+					bool pipeConnected = tracker.Initialize();
+					isCompanion = config.GetValue(usingCompanion);
+					GenericInputDevice genericInputDevice = new GenericInputDevice();
+					__instance.RegisterInputDriver(genericInputDevice);
 				}
 				catch (Exception ex)
 				{
@@ -48,30 +91,13 @@ namespace NeosVarjoEye
 		{
 			public static bool Prefix()
 			{
-				VarjoTrackingModule.tracker.Teardown();
+				tracker.Teardown();
 				return true;
 			}
 		}
 
 		public class GenericInputDevice : IInputDriver
-		{
-			[Serializable]
-			public class Settings
-			{
-				public float userPupilScale = 0.001f;
-				public float blinkSpeed = 10.0f;
-				public bool blinkDetection = true;
-				public float middleStateSpeedMultiplier = 0.025f;
-				public float blinkDetectionMultiplier = 2.0f;
-
-				public float fullOpenState = 1.0f;
-				public float halfOpenState = 0.5f;
-				public float quarterOpenState = 0.25f;
-				public float closedState = 0.0f;
-			}
-
-			public Settings eyeTrackingSettings = new Settings();
-			
+		{	
 			public Eyes eyes;
 			
 			public int UpdateOrder => 100;
@@ -87,21 +113,6 @@ namespace NeosVarjoEye
 			private float _rightEyeBlinkMultiplier = 1.0f;
 
 			private const string EYETRACKING_CONFIG_FILE = "nml_config/varjo.neos.eyetracking.json";
-
-			public GenericInputDevice()
-			{
-				// Check if our config file is present.
-
-				if (File.Exists(EYETRACKING_CONFIG_FILE))
-				{
-					eyeTrackingSettings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(EYETRACKING_CONFIG_FILE));
-				}
-				else
-				{
-					// Create the file, populated it with some defaults.
-					File.WriteAllText(EYETRACKING_CONFIG_FILE, JsonConvert.SerializeObject(eyeTrackingSettings));
-				}
-			}
 
 			public void CollectDeviceInfos(DataTreeList list)
 			{
@@ -121,32 +132,38 @@ namespace NeosVarjoEye
 			{
 				// Updating this on the main thread isn't the optimal idea.
 				// But giving it its own thread messes around with things for some reason. So here it lies
-				VarjoTrackingModule.tracker.Update();
+				tracker.Update();
+				var gazeData = tracker.GetGazeData();
+				var eyeData = tracker.GetEyeMeasurements();
 
-				var leftPupil = (float)(gazeData.leftPupilSize * eyeTrackingSettings.userPupilScale);
-				var rightPupil = (float)(gazeData.leftPupilSize * eyeTrackingSettings.userPupilScale);
+				var leftPupil = isCompanion ?
+					(float)(gazeData.leftPupilSize * config.GetValue(userPupilScale)) :
+					eyeData.rightPupilDiameterInMM;
+				var rightPupil = isCompanion ?
+					(float)(gazeData.leftPupilSize * config.GetValue(userPupilScale)) :
+					eyeData.leftPupilDiameterInMM;
 
 				var leftOpen =
-					gazeData.leftStatus == GazeEyeStatus.Tracked ? eyeTrackingSettings.fullOpenState : (
-					gazeData.leftStatus == GazeEyeStatus.Compensated ? eyeTrackingSettings.halfOpenState : (
-					gazeData.leftStatus == GazeEyeStatus.Visible ? eyeTrackingSettings.quarterOpenState
-					: eyeTrackingSettings.closedState)); // GazeEyeStatus.Invalid
+					gazeData.leftStatus == GazeEyeStatus.Tracked ? config.GetValue(fullOpenState) : (
+					gazeData.leftStatus == GazeEyeStatus.Compensated ? config.GetValue(halfOpenState) : (
+					gazeData.leftStatus == GazeEyeStatus.Visible ? config.GetValue(quarterOpenState)
+					: config.GetValue(closedState))); // GazeEyeStatus.Invalid
 
 				var rightOpen =
-					gazeData.rightStatus == GazeEyeStatus.Tracked ? eyeTrackingSettings.fullOpenState : (
-					gazeData.rightStatus == GazeEyeStatus.Compensated ? eyeTrackingSettings.halfOpenState : (
-					gazeData.rightStatus == GazeEyeStatus.Visible ? eyeTrackingSettings.quarterOpenState
-					: eyeTrackingSettings.closedState)); // GazeEyeStatus.Invalid
+					gazeData.rightStatus == GazeEyeStatus.Tracked ? config.GetValue(fullOpenState) : (
+					gazeData.rightStatus == GazeEyeStatus.Compensated ? config.GetValue(halfOpenState) : (
+					gazeData.rightStatus == GazeEyeStatus.Visible ? config.GetValue(quarterOpenState)
+					: config.GetValue(closedState))); // GazeEyeStatus.Invalid
 				
-				if (eyeTrackingSettings.blinkDetection)
+				if (config.GetValue(blinkDetection))
 				{
 					if (_previouslyClosedLeft == true && gazeData.leftStatus == GazeEyeStatus.Invalid)
 					{
-						_leftEyeBlinkMultiplier += eyeTrackingSettings.blinkDetectionMultiplier;
+						_leftEyeBlinkMultiplier += config.GetValue(blinkDetectionMultiplier);
 					}
 					else if (gazeData.leftStatus == GazeEyeStatus.Compensated || gazeData.leftStatus == GazeEyeStatus.Visible)
 					{
-						_leftEyeBlinkMultiplier *= eyeTrackingSettings.middleStateSpeedMultiplier;
+						_leftEyeBlinkMultiplier *= config.GetValue(middleStateSpeedMultiplier);
 						_leftEyeBlinkMultiplier = MathX.Max(1.0f, _leftEyeBlinkMultiplier);
 					}
 					else
@@ -156,11 +173,11 @@ namespace NeosVarjoEye
 
 					if (_previouslyClosedRight == true && gazeData.rightStatus == GazeEyeStatus.Invalid)
 					{
-						_rightEyeBlinkMultiplier += eyeTrackingSettings.blinkDetectionMultiplier;
+						_rightEyeBlinkMultiplier += config.GetValue(blinkDetectionMultiplier);
 					}
 					else if (gazeData.rightStatus == GazeEyeStatus.Compensated || gazeData.rightStatus == GazeEyeStatus.Visible)
 					{
-						_rightEyeBlinkMultiplier *= eyeTrackingSettings.middleStateSpeedMultiplier;
+						_rightEyeBlinkMultiplier *= config.GetValue(middleStateSpeedMultiplier);
 						_rightEyeBlinkMultiplier = MathX.Max(1.0f, _rightEyeBlinkMultiplier);
 					}
 					else
@@ -171,10 +188,10 @@ namespace NeosVarjoEye
 					_previouslyClosedLeft = gazeData.leftStatus == GazeEyeStatus.Invalid;
 					_previouslyClosedRight = gazeData.rightStatus == GazeEyeStatus.Invalid;
 				}
-				
-				_leftOpen = MathX.Lerp(_leftOpen, leftOpen, deltaTime * eyeTrackingSettings.blinkSpeed * _leftEyeBlinkMultiplier);
 
-				_rightOpen = MathX.Lerp(_rightOpen, rightOpen, deltaTime * eyeTrackingSettings.blinkSpeed * _rightEyeBlinkMultiplier);
+				_leftOpen = MathX.Lerp(_leftOpen, leftOpen, deltaTime * config.GetValue(blinkSpeed) * _leftEyeBlinkMultiplier);
+
+				_rightOpen = MathX.Lerp(_rightOpen, rightOpen, deltaTime * config.GetValue(blinkSpeed) * _rightEyeBlinkMultiplier);
 
 				bool leftStatus = gazeData.leftStatus == GazeEyeStatus.Compensated ||
 				                  gazeData.leftStatus == GazeEyeStatus.Tracked ||
@@ -193,22 +210,20 @@ namespace NeosVarjoEye
 				float combinedPupil = MathX.Average(leftPupil, rightPupil);
 				float combinedOpen = MathX.Average(leftOpen, rightOpen);
 
-				_combinedOpen = MathX.Lerp(_combinedOpen, combinedOpen, deltaTime * eyeTrackingSettings.blinkSpeed);
+				_combinedOpen = MathX.Lerp(_combinedOpen, combinedOpen, deltaTime * config.GetValue(blinkSpeed));
 				
 				UpdateEye(in gazeData.gaze, in combinedStatus, in combinedPupil, _combinedOpen, deltaTime, eyes.CombinedEye);
 
 				eyes.ComputeCombinedEyeParameters();
 
 				// Yes, I am aware convergence distance and focus distance are NOT the same thing.
-				// But we ought to get it in somehow.
 				if (gazeData.stability > 0.75) {
 					eyes.ConvergenceDistance = (float) gazeData.focusDistance;
 				}
 
 				/*
 				* Yeah, gazeData.captureTime is wonky. gazeData.frameNumber it is! 
-				* We need a hardcoded value to divide it by bc mod config go brr
-				* I mean, you don't need 100hz+ sampling in a networked social context anyways, right? Right!
+				* You don't need 100hz+ sampling in a networked social context anyways, right?
 				*/
 
 				eyes.Timestamp = gazeData.frameNumber / 100;
