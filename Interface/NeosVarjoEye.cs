@@ -76,7 +76,6 @@ namespace NeosVarjoEye
 					else
                     {
 						Warn("Varjo eye tracking will be unavailable for this session.");
-
 					}
 				}
 				catch (Exception ex)
