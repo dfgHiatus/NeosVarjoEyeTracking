@@ -48,7 +48,7 @@ namespace NeosVarjoEye
 
 		public override string Name => "Neos-Varjo-Eye-Integration";
 		public override string Author => "dfgHiatus";
-		public override string Version => "1.0.6";
+		public override string Version => "1.1.1";
 		public override string Link => "https://github.com/dfgHiatus/NeosVarjoEyeTracking";
 		public override void OnEngineInit()
 		{
