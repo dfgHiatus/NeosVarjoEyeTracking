@@ -68,10 +68,16 @@ namespace NeosVarjoEye
 				{
 					tracker = new VarjoCompanionInterface();
 					Debug(string.Format("Initializing {0} Varjo module", tracker.GetName()));
-					bool pipeConnected = tracker.Initialize();
-					// isCompanion = config.GetValue(usingCompanion);
-					GenericInputDevice genericInputDevice = new GenericInputDevice();
-					__instance.RegisterInputDriver(genericInputDevice);
+					if (tracker.Initialize())
+                    {
+						GenericInputDevice genericInputDevice = new GenericInputDevice();
+						__instance.RegisterInputDriver(genericInputDevice);
+					}
+					else
+                    {
+						Warn("Varjo eye tracking will be unavailable for this session.");
+
+					}
 				}
 				catch (Exception ex)
 				{
