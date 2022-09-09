@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace VarjoInterface
 {
@@ -61,15 +56,15 @@ namespace VarjoInterface
         public GazeEyeStatus rightStatus;       //!< Status of right eye data.
         public GazeStatus status;               //!< Tracking main status.
         public long frameNumber;                //!< Frame number, increases monotonically.
-        public double leftPupilSize;            //!< Normalized [0..1] left eye pupil size.
-        public double rightPupilSize;           //!< Normalized [0..1] right eye pupil size.
+        public double leftPupilSize;            //!< <DEPRECATED> Normalized [0..1] left eye pupil size.
+        public double rightPupilSize;           //!< <DEPRECATED> Normalized [0..1] right eye pupil size.
     }
 
 
     [StructLayout(LayoutKind.Sequential)]
     public struct EyeMeasurements
     {
-        public long frameNumber;                    //!< Frame number, increases monotonically.
+        public long frameNumber;                    //!< Frame number, increases monotonically.  
         public long captureTime;                    //!< Varjo time when this data was captured, see varjo_GetCurrentTime()
         public float interPupillaryDistanceInMM;    //!< Estimated IPD in millimeters
         public float leftPupilIrisDiameterRatio;    //!< Ratio between left pupil and left iris.
@@ -78,8 +73,10 @@ namespace VarjoInterface
         public float rightPupilDiameterInMM;        //!< Right pupil diameter in mm
         public float leftIrisDiameterInMM;          //!< Left iris diameter in mm
         public float rightIrisDiameterInMM;         //!< Right iris diameter in mm
+        public float leftEyeOpenness;               //!< Estimate of the ratio of openness of the left eye where 1 corresponds to a fully open eye and 0 corresponds to a fully closed eye. 
+        public float rightEyeOpenness;              //!< Estimate of the ratio of openness of the right eye where 1 corresponds to a fully open eye and 0 corresponds to a fully closed eye. 
     }
-
+    
 
     [StructLayout(LayoutKind.Sequential)]
     public struct GazeCalibrationParameter
@@ -145,7 +142,7 @@ namespace VarjoInterface
 
         protected bool VarjoAvailable()
         {
-            // totally not how the official Varjo library works under the hood
+            // Totally not how the official Varjo library works under the hood
             return File.Exists("\\\\.\\pipe\\Varjo\\InfoService");
         }
 

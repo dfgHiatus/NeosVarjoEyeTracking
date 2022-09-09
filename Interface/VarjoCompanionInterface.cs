@@ -64,7 +64,6 @@ namespace VarjoInterface.Companion
             ViewAccessor.Write(0, ref varjoData);
             MemMapFile.Dispose();
             CompanionProcess.Close();
-            // CompanionProcess.Kill(); might be better suited here
         }
 
         public override string GetName()
