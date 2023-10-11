@@ -15,11 +15,11 @@ public class VarjoNativeInterface : VarjoInterface
 
     public override bool Initialize()
     {
-        if (!VarjoAvailable())
-        {
-            UniLog.Error("Varjo headset isn't detected");
-            return false;
-        }
+        //if (!VarjoAvailable())
+        //{
+        //    UniLog.Error("Varjo headset isn't detected");
+        //    return false;
+        //}
         LoadLibrary();
         _session = varjo_SessionInit();
         if (_session == IntPtr.Zero)
@@ -54,14 +54,8 @@ public class VarjoNativeInterface : VarjoInterface
     public override string GetName() => "Varjo Native Interface";
 
     private bool LoadLibrary()
-    {
-        IEnumerable<string> dllPaths = ExtractAssemblies(new string[] { "ResoniteVarjoEye.VarjoLib.dll" });
-        var path = dllPaths.First();
-        if (path == null)
-        {
-            UniLog.Error(string.Concat("Couldn't extract the library ", path));
-            return false;
-        }
+    {;
+        var path = "VarjoLib.dll";
         if (LoadLibrary(path) == IntPtr.Zero)
         {
             UniLog.Error(string.Concat("Unable to load library ", path));
@@ -69,54 +63,6 @@ public class VarjoNativeInterface : VarjoInterface
         }
         UniLog.Log(string.Concat("Loaded library ", path));
         return true;
-    }
-
-    private static IEnumerable<string> ExtractAssemblies(IEnumerable<string> resourceNames)
-    {
-        var extractedPaths = new List<string>();
-
-        var dirName = Path.Combine(Engine.Current.AppPath, "rml_mods", "varjo");
-        if (!Directory.Exists(dirName))
-            Directory.CreateDirectory(dirName);
-
-        foreach (var dll in resourceNames)
-        {
-            var dllPath = Path.Combine(dirName, GetAssemblyNameFromPath(dll));
-
-            using (var stm = Assembly.GetAssembly(typeof(VarjoNativeInterface)).GetManifestResourceStream("ResoniteVarjoEye." + dll))
-            {
-                try
-                {
-                    using (System.IO.Stream outFile = File.Create(dllPath))
-                    {
-                        const int sz = 4096;
-                        var buf = new byte[sz];
-                        while (true)
-                        {
-                            if (stm == null) continue;
-                            var nRead = stm.Read(buf, 0, sz);
-                            if (nRead < 1)
-                                break;
-                            outFile.Write(buf, 0, nRead);
-                        }
-                    }
-
-                    extractedPaths.Add(dllPath);
-                }
-                catch (Exception e)
-                {
-                    UniLog.Error($"Failed to get DLL: " + e.Message);
-                }
-            }
-        }
-        return extractedPaths;
-    }
-
-    private static string GetAssemblyNameFromPath(string path)
-    {
-        var splitPath = path.Split('.').ToList();
-        splitPath.Reverse();
-        return splitPath[1] + ".dll";
     }
 
     [DllImport("kernel32", CharSet = CharSet.Unicode, ExactSpelling = false, SetLastError = true)]
