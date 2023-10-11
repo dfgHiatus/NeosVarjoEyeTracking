@@ -2,8 +2,6 @@
 using FrooxEngine;
 using HarmonyLib;
 using ResoniteModLoader;
-using VarjoInterface;
-using VarjoInterface.Companion;
 
 namespace ResoniteVarjoEye;
 
@@ -46,7 +44,7 @@ public class VarjoEyeIntegration : ResoniteMod
 	public readonly static ModConfigurationKey<float> minPupilSize = new ModConfigurationKey<float>("min_Pupil_Size", "Minimum Pupil Size", () => 0.003f);
 
 	public static ModConfiguration config;
-	private static VarjoModule tracker;
+	private static VarjoNativeInterface tracker;
 
 	public override string Name => "VarjoEyeIntegration";
 	public override string Author => "dfgHiatus";
@@ -57,7 +55,7 @@ public class VarjoEyeIntegration : ResoniteMod
 	{
 		config = GetConfiguration();
 		new Harmony("net.dfgHiatus.ResoniteVarjoEyeTracking").PatchAll();
-		tracker = new VarjoCompanionInterface();
+		tracker = new VarjoNativeInterface();
 
 		if (!tracker.Initialize())
         {
@@ -166,7 +164,7 @@ public class VarjoEyeIntegration : ResoniteMod
 				_rightOpen = MathX.Lerp(_rightOpen, rightOpen, deltaTime * config.GetValue(blinkSpeed) * _rightEyeBlinkMultiplier);
 			}
 			else
-                {
+            {
 				_leftOpen = eyeData.leftEyeOpenness;
 				_rightOpen = eyeData.rightEyeOpenness;
 			}

@@ -1,20 +1,12 @@
 ﻿using System.IO;
 using System.Runtime.InteropServices;
 
-namespace VarjoInterface;
+namespace ResoniteVarjoEye;
 
-// Varjo's structs used with both native library and companion
-[StructLayout(LayoutKind.Sequential)]
-public struct VarjoData
-{
-    public GazeData gazeData;
-    public EyeMeasurements eyeData;
-}
-
+//Varjo's structs used with both native library and companion
 [StructLayout(LayoutKind.Sequential)]
 public struct Vector
 {
-
     public double x;
     public double y;
     public double z;
@@ -56,15 +48,15 @@ public struct GazeData
     public GazeEyeStatus rightStatus;       //!< Status of right eye data.
     public GazeStatus status;               //!< Tracking main status.
     public long frameNumber;                //!< Frame number, increases monotonically.
-    public double leftPupilSize;            //!< <DEPRECATED> Normalized [0..1] left eye pupil size.
-    public double rightPupilSize;           //!< <DEPRECATED> Normalized [0..1] right eye pupil size.
+    public double leftPupilSize;            //!< Normalized [0..1] left eye pupil size.
+    public double rightPupilSize;           //!< Normalized [0..1] right eye pupil size.
 }
 
 
 [StructLayout(LayoutKind.Sequential)]
 public struct EyeMeasurements
 {
-    public long frameNumber;                    //!< Frame number, increases monotonically.  
+    public long frameNumber;                    //!< Frame number, increases monotonically.
     public long captureTime;                    //!< Varjo time when this data was captured, see varjo_GetCurrentTime()
     public float interPupillaryDistanceInMM;    //!< Estimated IPD in millimeters
     public float leftPupilIrisDiameterRatio;    //!< Ratio between left pupil and left iris.
@@ -73,8 +65,8 @@ public struct EyeMeasurements
     public float rightPupilDiameterInMM;        //!< Right pupil diameter in mm
     public float leftIrisDiameterInMM;          //!< Left iris diameter in mm
     public float rightIrisDiameterInMM;         //!< Right iris diameter in mm
-    public float leftEyeOpenness;               //!< Estimate of the ratio of openness of the left eye where 1 corresponds to a fully open eye and 0 corresponds to a fully closed eye. 
-    public float rightEyeOpenness;              //!< Estimate of the ratio of openness of the right eye where 1 corresponds to a fully open eye and 0 corresponds to a fully closed eye. 
+    public float leftEyeOpenness;               //!< Left Eye Openness
+    public float rightEyeOpenness;              //!< Right Eye Openness
 }
 
 
@@ -120,29 +112,29 @@ public struct GazeCalibrationQuality
 }
 
 
-public abstract class VarjoModule
+public abstract class VarjoInterface
 {
-    protected VarjoData varjoData;
+    protected GazeData gazeData;
+    protected EyeMeasurements eyeMeasurements;
 
     public GazeData GetGazeData()
     {
-        return varjoData.gazeData;
+        return gazeData;
     }
 
     public EyeMeasurements GetEyeMeasurements()
     {
-        return varjoData.eyeData;
+        return eyeMeasurements;
     }
 
     public abstract void Teardown();
     public abstract bool Initialize();
     public abstract void Update();
-
     public abstract string GetName();
 
     protected bool VarjoAvailable()
     {
-        // Totally not how the official Varjo library works under the hood
+        // totally not how the official Varjo library works under the hood
         return File.Exists("\\\\.\\pipe\\Varjo\\InfoService");
     }
 }

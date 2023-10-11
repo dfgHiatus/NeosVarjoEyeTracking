@@ -52,11 +52,15 @@
   <ItemGroup>
     <Compile Include="VarjoEyeIntegration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="VarjoCompanionInterface.cs" />
     <Compile Include="VarjoInterface.cs" />
+    <Compile Include="VarjoNativeInterface.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="VarjoLib.dll" />
+    <Content Include="VarjoLib32.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
