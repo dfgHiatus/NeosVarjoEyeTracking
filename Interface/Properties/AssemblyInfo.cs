@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("NeosWCFace-Integration")]
-[assembly: AssemblyDescription("A WCFace Integration for NeosVR. Provides robust eye and face tracking using an RGB webcamera")]
+[assembly: AssemblyTitle("ResoniteVarjoIntegration")]
+[assembly: AssemblyDescription("Varjo eye tracking for Resonite")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Hiatus Labs")]
-[assembly: AssemblyProduct("NeosWCFace-Integration")]
+[assembly: AssemblyProduct("ResoniteVarjoIntegration")]
 [assembly: AssemblyCopyright("Copyright ©  2021")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
